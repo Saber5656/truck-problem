@@ -38,7 +38,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Use the same 3D rail centerline for cockpit motion and rail meshes. Animate the movable point blades after the answer and before departure. Never restore CSS background zoom/sideways translation as train movement (user correction 2026-09-19).
 
 - Questions and choices must ask whom to HIT / SACRIFICE, using group names and ethically conflicting fictional premises. Demo and API share identical production scenario text. Choice left/right names the casualty group; travel goes to that same track. Display both sacrificed and saved groups (user correction 2026-09-20).
-- The planned rails exist before departure and reconnect after each group. Add waiting-track extensions before they enter view; never show dangling track ends. After the last dilemma, travel to the terminus, stop at the platform, then allow the result screen (2026-09-19).
+- The planned rails exist before departure and reconnect after each group. Add waiting-track extensions before they enter view; never show dangling track ends. After the last dilemma, travel to the terminus, stop at the platform, then automatically show the result screen (2026-09-19).
 
 - After departure, never stop between questions. Reveal/request the next question after impact while cruising along a longer straight. Extend the straight if its reply is pending or failed; do not enter an undecided fork. Preserve nonzero speed at question/track boundaries and brake only at the final platform. Initial errors before departure and hidden-tab/reduced-motion accessibility behavior are distinct from intermediate stops.
 
@@ -49,3 +49,5 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 - Every dilemma places five people on the left/default straight and one on the right branch. Points start aligned straight; never use a neutral half-alignment. Left means not moving the lever, right means intentionally switching it. Match scenario text, counts, demo outcomes and API instructions (2026-09-20).
 - Cruise at 18m/s (1.8 times the former speed), preserve continuous motion, and share scene transition timings with the tests. Normal fast replies must complete without extending the 120m junctions; keep delay/error safety and final station braking (2026-09-20).
+
+- Show the results automatically when the final station arrival event fires after stopping. Do not add a results button or show results during braking. Keep all three decisions and return replay to the title screen (2026-09-20).

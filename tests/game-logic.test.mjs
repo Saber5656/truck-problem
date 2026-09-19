@@ -10,7 +10,6 @@ import {
   finishImpact,
   advanceRound,
   arriveAtStation,
-  finishRun,
 } from "../src/game-logic.mjs";
 
 const answer = {
@@ -89,7 +88,7 @@ test("failure enters an explicit retryable error without a fabricated answer or 
   assert.equal(finishMotion(initial), initial);
 });
 
-test("three arrivals finish the run once; replay clears every decision", () => {
+test("the final station arrival automatically shows results once; replay clears every decision", () => {
   let state = createRunState();
   for (let round = 0; round < 3; round++) {
     state = finishImpact(
@@ -106,10 +105,8 @@ test("three arrivals finish the run once; replay clears every decision", () => {
   }
   assert.equal(state.gameFinished, false);
   assert.equal(state.phase, "station");
-  assert.equal(finishRun(state), state);
   state = arriveAtStation(state);
   assert.equal(state.phase, "arrived");
-  state = finishRun(state);
   assert.equal(state.gameFinished, true);
   assert.equal(state.history.length, 3);
   assert.deepEqual(
@@ -147,11 +144,10 @@ test("point lock is required before motion and may complete only once", () => {
 test("station arrival cannot skip unanswered questions or consume another decision", () => {
   const ready = createRunState();
   assert.equal(arriveAtStation(ready), ready);
-  assert.equal(finishRun(ready), ready);
   const station = { ...ready, phase: "station", roundIndex: 2 };
   assert.equal(beginRound(station), station);
   const arrived = arriveAtStation(station);
   assert.equal(beginRound(arrived), arrived);
   assert.equal(arriveAtStation(arrived), arrived);
-  assert.equal(finishRun(arrived).gameFinished, true);
+  assert.equal(arrived.gameFinished, true);
 });

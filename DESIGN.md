@@ -93,3 +93,8 @@ Rendering correction: the transparent person sprite must write depth for its alp
 User correction: every left/default straight has five people, every right/diverted rail has one. Swap the first two groups and make strangers five in question 2. Labels remain group names; the scenario/API instructions explicitly describe inaction versus intentionally moving the lever. Points start fully aligned straight; choosing left leaves them still, only right animates them. Preserve the existing cockpit/neon layout and assets; this is scenario/animation tuning, not a redesign.
 
 Increase cruise speed from 10 to 18 m/s. Keep connected geometry, continuous inter-question motion and station braking. Shorten the consequence hold to 0.6s and point movement/settling to 0.7/0.8s, keeping impact at 0.55s. The normal 120m tile stays short; only a delayed/failed response may add waiting track. Test sub-27s running time with a simulated 0.8s response and no extension, plus delayed-response protection. Share timing constants between actual scene and simulation tests.
+
+
+## 2026-09-20: automatic results at the terminus (current)
+
+When the existing physical-arrival event fires after final braking, immediately show the existing results screen. Remove the manual results button/finish action. Do not advance during approach, request another judgment, drop history or change replay. This is a small transition change within the selected UI, with no new visual design/assets.

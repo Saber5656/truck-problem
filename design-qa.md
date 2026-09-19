@@ -358,3 +358,15 @@ final result: passed
 - ブラウザ証拠: `qa/five-fast-demo.png`（第2問、部分範囲の画像）、`five-fast-mobile.png`（390px、第3問）、`five-fast-live.png`（実際は終点到着）、`five-fast-live-results.png/txt`。通常console warn/error取得範囲0件。390pxでscrollWidth390。再プレイ後に実APIを選択し、Play待ち。viewport解除。
 - 独立レビューcompact_review（native Codex gpt-5.6-luna / low、既知Claude auth_error未復旧につき既存機能利用）は指摘なし。主担当は低fps時の16m閾値を含め、全差分・参照・速度境界・キー除外をレビュー。P0/P1/P2未解決なし。
 - 秘密env未読。Git追跡は空.env.exampleだけ。配信物に架空sentinelなし。APIキーの扱い・初期demo・公開範囲を変更しない。元のVault成果も保持。
+
+
+## 2026-09-20 — 終点で自動結果表示（最新）
+
+final result: passed
+
+- 利用者の依頼により、停車後の既存arrivedイベントでgameFinishedを同時に設定する。「結果を見る」ボタンと手動finishRunを削除。減速/駅へ進入中は結果へ移らず、3問の履歴・見出しへのフォーカス・再プレイを維持。
+- レイアウト/画像/描画/実API契約は変更していない。選定済み画面内の小さな遷移修正で、新規デザイン案や追加素材は不要。
+- TDD: 到着だけで結果を開く2つの期待がfalseで失敗することを確認後、実装。43テスト、4配信形式テスト、本番build成功。独立compact_review（native Codex gpt-5.6-luna / low、既知Claude auth_errorに対する既存機能利用）は指摘なし。主担当の差分/秘密除外レビューも実施。
+- 本番4174のChromeでdemo Playを一度だけ押した後、追加操作なしで3件の結果一覧が表示された。見出しフォーカスと履歴内容を確認。再プレイでタイトルへ戻る。console warn/error取得範囲0件。証拠 `qa/auto-results-browser.txt/png`。
+- 本番ビルドを更新し、既存サーバーがその出力を配信。ブラウザタブは実APIモードを選んだ開始画面で保持。今回は到着処理の共通ロジックのみを変更したため実API再送は0回。前回の実API3問の検証結果は維持するが、今回の自動遷移の実操作はdemoで確認。
+- 秘密env内容は未読。Gitには空テンプレートだけ、配信物に架空sentinelなし。新しい未解決不具合なし。前回登録した依存警告9件は別件として残る。

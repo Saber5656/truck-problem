@@ -60,9 +60,5 @@ export function advanceRound(state, totalRounds) {
 
 export function arriveAtStation(state) {
   if (state.phase !== "station") return state;
-  return { ...state, phase: "arrived" };
-}
-export function finishRun(state) {
-  if (state.phase !== "arrived") return state;
-  return { ...state, gameFinished: true };
+  return { ...state, phase: "arrived", gameFinished: true };
 }

@@ -13,7 +13,6 @@ import {
   finishImpact,
   advanceRound,
   arriveAtStation,
-  finishRun,
 } from "./game-logic.mjs";
 
 function PercentBar({ value, tone = "cyan" }) {
@@ -341,29 +340,21 @@ function App({ decisionProvider } = {}) {
                     !sceneError &&
                     (busy || !sceneReady || (mode === "live" && !configured))
                   }
-                  onClick={
-                    sceneError
-                      ? restart
-                      : phase === "arrived"
-                        ? () => setRun(finishRun)
-                        : play
-                  }
+                  onClick={sceneError ? restart : play}
                 >
                   {sceneError
                     ? "スタート画面に戻る"
                     : !sceneReady
                       ? "準備中…"
-                      : phase === "arrived"
-                        ? "結果を見る"
-                        : phase === "judging"
-                          ? "判定中…"
-                          : phase === "switching"
-                            ? "進路を設定中…"
-                            : busy
-                              ? "運行中…"
-                              : error
-                                ? "もう一度判定する"
-                                : "ゲームをプレイ"}
+                      : phase === "judging"
+                        ? "判定中…"
+                        : phase === "switching"
+                          ? "進路を設定中…"
+                          : busy
+                            ? "運行中…"
+                            : error
+                              ? "もう一度判定する"
+                              : "ゲームをプレイ"}
                 </button>
                 {mode === "live" && ["ready", "error"].includes(phase) && (
                   <span className="playback-mode-note">
