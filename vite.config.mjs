@@ -1,7 +1,7 @@
 import { defineConfig, loadEnv } from "vite";
 import react from "@vitejs/plugin-react";
 import { fileURLToPath } from "node:url";
-import { createDecisionMiddleware } from "./server/decision.mjs";
+import { createLocalDecisionPlugin } from "./server/local-api-plugin.mjs";
 
 export default defineConfig(({ mode }) => {
   const root = fileURLToPath(new URL('.', import.meta.url));
@@ -22,11 +22,12 @@ export default defineConfig(({ mode }) => {
         clientFiles: ["./src/main.jsx"],
       },
     },
-    plugins: [react(), {
-      name: 'local-typesafe-api',
-      configureServer(server) {
-        server.middlewares.use(createDecisionMiddleware({ apiKey: env.TYPESAFE_API_KEY }));
-      },
-    }],
+    preview: {
+      host: "127.0.0.1",
+      port: 4174,
+      strictPort: true,
+      allowedHosts: ["localhost"],
+    },
+    plugins: [react(), createLocalDecisionPlugin({ apiKey: env.TYPESAFE_API_KEY })],
   };
 });

@@ -28,7 +28,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - The primary character is a fox-like driver named Jev, shown in the judgment panel. The railway is seen from Jev's cockpit; never show an exterior trolley inside that first-person view (user correction 2026-09-19).
 - The first playable slice is a three-question, two-route trolley-problem game. Pressing Play lets Jev choose and moves the trolley; the player watches. Do not restore player-choice inputs or an agreement score (confirmed 2026-09-19).
 - The entry is `src/main.jsx`, which mounts `src/App.jsx` and imports the stylesheet. Do not switch to a static substitute when dependency installation fails. The old `src/preview.js` is unused historical code.
-- TypeSafe credentials belong only in the Git-ignored `.env.local` as `TYPESAFE_API_KEY` or in the process environment; never expose them as `VITE_` variables. The local API middleware is development-only, loopback port 5173.
+- TypeSafe credentials belong only in the Git-ignored `.env.local` as `TYPESAFE_API_KEY` or in the process environment; never expose them as `VITE_` variables. The local API middleware is loopback-only: development port 5173, built preview port 4174. Each runtime accepts only its own Host and same Origin.
 - Start in demo mode, clearly label fabricated poll/demo data, and do not silently fall back to demo after an API failure. Key presence is not proof of successful authentication or credit balance.
 
 - Canonical product checkout is `~/dev/jev-trolley-game`, separate from both Vaults. Keep the original source intact. Vault is for context and references only.

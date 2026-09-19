@@ -1,6 +1,6 @@
 const messages = {
   KEY_NOT_CONFIGURED:
-    ".env.local に TYPESAFE_API_KEY を設定し、開発サーバーを再起動してください。",
+    ".env.local に TYPESAFE_API_KEY を設定し、ゲームのサーバーを再起動してください。",
   INVALID_KEY:
     "APIキーを認証できません。TypeSafeの管理画面と設定ファイルを確認してください。",
   ACCESS_DENIED:
@@ -31,7 +31,7 @@ export async function requestDecision(
     result = await response.json();
   } catch {
     throw new Error(
-      "判定サーバーに接続できません。開発サーバーの起動を確認してください。自動再送はしていません。",
+      "判定サーバーに接続できません。ゲームのサーバーの起動を確認してください。自動再送はしていません。",
     );
   }
   if (!response.ok)

@@ -1,6 +1,5 @@
 import { SCENARIOS, decisionOutcome } from "../src/scenarios.mjs";
 
-const hosts = new Set(["127.0.0.1:5173", "localhost:5173"]);
 const unit = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
 
 function normalizeAnswer(data) {
@@ -51,11 +50,13 @@ export function decisionQuestion(scenario) {
   };
 }
 
-// Local development only. The key never enters Vite's client environment.
+// Loopback-only runtime. The key never enters Vite's client environment.
 export function createDecisionMiddleware({
   apiKey = "",
   fetchImpl = globalThis.fetch,
+  allowedHosts = ["127.0.0.1:5173", "localhost:5173"],
 } = {}) {
+  const hosts = new Set(allowedHosts);
   let inFlight = false;
   return async (req, res, next) => {
     const path = req.url?.split("?")[0];
