@@ -233,7 +233,9 @@ function App({ decisionProvider } = {}) {
       : phase === "judging"
         ? "Jevが判断中…"
         : phase === "switching"
-          ? "分岐器を切り替え中"
+          ? answer?.choice === "right"
+            ? "レバーを切り替え中"
+            : "レバーを動かさず直進"
           : phase === "moving"
             ? `${jevChoiceLabel}を犠牲にする`
             : ["impact", "departing"].includes(phase)

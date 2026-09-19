@@ -5,11 +5,21 @@ export const TILE_LENGTH = 120;
 export const END_Z = START_Z - TILE_LENGTH;
 export const PEOPLE_Z = -42;
 export const GAUGE = 1.6;
+export const PLAYBACK_TIMING = {
+  impact: 0.55,
+  consequence: 0.6,
+  pointsMove: 0.7,
+  pointsReady: 0.8,
+};
 export const clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n));
 export const smooth = (t) => {
   const u = clamp(t);
   return u * u * (3 - 2 * u);
 };
+
+export function pointAlignment(route, seconds) {
+  return route === "switch" ? smooth(seconds / PLAYBACK_TIMING.pointsMove) : 0;
+}
 
 export function centerAtZ(choice, z) {
   const outward = smooth((-z - 4) / 32);

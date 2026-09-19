@@ -46,3 +46,6 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Normal junctions should use the original 96m plus only a small reply allowance (currently 120m total), not the previous 256m. Delay-only extensions are short and hidden beyond the current fog; fast replies must not lengthen the run (2026-09-20).
 - Initial load and replay show a dedicated title screen (Jev, "トロッコ問題を遊ぶ", Play). Never reveal the first question, casualty groups, people, results or round counter before Play. Start the first decision only after the newly mounted railway is ready (2026-09-20).
 - Alpha-tested person sprites must write depth while retaining depth testing. Transparent rails must not paint over nearer people; verify the five-person approach as a visual regression (2026-09-20).
+
+- Every dilemma places five people on the left/default straight and one on the right branch. Points start aligned straight; never use a neutral half-alignment. Left means not moving the lever, right means intentionally switching it. Match scenario text, counts, demo outcomes and API instructions (2026-09-20).
+- Cruise at 18m/s (1.8 times the former speed), preserve continuous motion, and share scene transition timings with the tests. Normal fast replies must complete without extending the 120m junctions; keep delay/error safety and final station braking (2026-09-20).

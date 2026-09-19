@@ -7,6 +7,7 @@ import {
   TILE_LENGTH,
   JUNCTION_LENGTH,
   sampleRoute,
+  PLAYBACK_TIMING,
 } from "../src/railway-motion.mjs";
 import { createDecisionSession } from "../src/game-api.mjs";
 
@@ -132,7 +133,7 @@ test("normal replies after impact complete a short run without waiting-track ext
       !train.station &&
       index < 2 &&
       train.distance >=
-        route.impactDistance + CRUISE_SPEED * (0.55 + 1.7 + 0.8 + 1.3)
+        route.impactDistance + CRUISE_SPEED * (PLAYBACK_TIMING.impact + PLAYBACK_TIMING.consequence + 0.8 + PLAYBACK_TIMING.pointsReady)
     ) {
       train.lock(index + 1, index === 0 ? "stay" : "switch");
     }
@@ -145,5 +146,39 @@ test("normal replies after impact complete a short run without waiting-track ext
     seconds += 0.02;
   }
   assert.equal(train.arrived, true);
-  assert.ok(seconds < 46, `journey took ${seconds.toFixed(1)}s`);
+  assert.ok(seconds < 27, `journey took ${seconds.toFixed(1)}s`);
+});
+
+test("fast replies tolerate slower rendering without adding waiting track", () => {
+  for (const dt of [1 / 60, 1 / 30, 0.08]) {
+    const train = new RailwayJourney(3);
+    train.lock(0, "switch");
+    train.start();
+    const delays = [PLAYBACK_TIMING.impact, PLAYBACK_TIMING.consequence, 0.8, PLAYBACK_TIMING.pointsReady];
+    let index = 0, stage = -1, elapsed = 0, seconds = 0;
+    while (!train.arrived && seconds < 30) {
+      if (train.physicalIndex !== index) {
+        index = train.physicalIndex;
+        stage = -1;
+      }
+      if (index < 2 && !train.routes[index + 1]) {
+        if (stage < 0 && train.distance >= train.routes[index].impactDistance) {
+          stage = 0;
+          elapsed = 0;
+        } else if (stage >= 0) {
+          elapsed += dt;
+          if (elapsed >= delays[stage]) {
+            stage++;
+            elapsed = 0;
+            if (stage === delays.length) train.lock(index + 1, "stay");
+          }
+        }
+      }
+      const frame = train.step(dt);
+      assert.equal(frame.extension, null, `unexpected extension with ${dt}s frames`);
+      seconds += dt;
+    }
+    assert.equal(train.arrived, true);
+    assert.ok(seconds < 27);
+  }
 });

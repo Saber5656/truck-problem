@@ -8,7 +8,7 @@ test("demo mode never calls the API and labels its result", async () => {
     assert.fail("no network in demo"),
   );
   assert.equal(result.source, "demo");
-  assert.equal(result.choice, "left");
+  assert.equal(result.choice, "right");
 });
 
 test("live mode submits only the scenario id to the local server", async () => {

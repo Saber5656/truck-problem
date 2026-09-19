@@ -6,6 +6,7 @@ import {
   nextOrigin,
   journeyDistance,
   switchBladePoint,
+  pointAlignment,
   TILE_LENGTH,
   JUNCTION_LENGTH,
   START_Z,
@@ -105,4 +106,13 @@ test("the last trunk connects to a station path that stops short of its buffer",
   assert.ok(
     sampleRoute(station, station.length).position.z > station.bufferZ + 3,
   );
+});
+
+
+test("points stay on the straight unless the lever is intentionally switched", () => {
+  for (const seconds of [0, .2, .4, 1, 5]) assert.equal(pointAlignment("stay", seconds), 0);
+  assert.equal(pointAlignment("switch", 0), 0);
+  assert.ok(pointAlignment("switch", .2) > 0);
+  assert.ok(pointAlignment("switch", .2) < pointAlignment("switch", .4));
+  assert.equal(pointAlignment("switch", 1), 1);
 });

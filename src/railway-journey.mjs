@@ -7,11 +7,11 @@ import {
   JUNCTION_LENGTH,
 } from "./railway-motion.mjs";
 
-export const CRUISE_SPEED = 10;
+export const CRUISE_SPEED = 18;
 const ACCELERATION_TIME = 1.2;
 const EXTENSION_LENGTH = 40;
 // A fast reply and point movement fit in the short normal straight.
-const WAITING_MARGIN = 20;
+const WAITING_MARGIN = 16;
 
 export class RailwayJourney {
   constructor(rounds) {

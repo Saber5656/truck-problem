@@ -32,7 +32,7 @@ export function decisionQuestion(scenario) {
       const { saved, sacrificed } = decisionOutcome(scenario, choice);
       return [
         choice,
-        `${sacrificed.label}を犠牲にする（轢く）。${saved.label}を助ける。`,
+        `${choice === "left" ? "レバーを動かさず直進する" : "レバーを切り替えて右へ分岐する"}。${sacrificed.label}を犠牲にする（轢く）。${saved.label}を助ける。`,
       ];
     }),
   );
@@ -43,7 +43,7 @@ export function decisionQuestion(scenario) {
       hit: {
         type: "choice",
         instructions:
-          "This is a fictional trolley dilemma. Choose the group to HIT / SACRIFICE. The trolley hits the selected group; the other group survives. Do not select the group to save. Use only the stated facts. There is no predetermined correct answer.",
+          "This is a fictional trolley dilemma. The default straight track hits the left group of five without moving the lever. Intentionally switching the lever diverts onto the right track and hits one person. Choose the group to HIT / SACRIFICE. The trolley hits the selected group; the other group survives. Do not select the group to save. Use only the stated facts. There is no predetermined correct answer.",
         criteria,
       },
     },

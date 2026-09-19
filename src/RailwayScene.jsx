@@ -13,7 +13,8 @@ import {
   makeRoute,
   sampleRoute,
   switchBladePoint,
-  smooth,
+  pointAlignment,
+  PLAYBACK_TIMING,
 } from "./railway-motion.mjs";
 
 // Rectangular steel rails, swept along exactly the same centerline as the camera.
@@ -343,7 +344,7 @@ function createWorld(host, callbacks) {
     group.add(motor);
     const tile = { index, origin, group, people, blades, bar, alignment: -1 };
     tiles.push(tile);
-    align(tile, 0.5);
+    align(tile, pointAlignment("stay", 0));
     return tile;
   }
   // Every rail exists from the first frame. Both branches rejoin the next trunk.
@@ -597,25 +598,20 @@ function createWorld(host, callbacks) {
           decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route
         ].visible = false;
       if (state.phase === "arrived") host.dataset.station = "arrived";
-      if (state.phase === "ready") host.dataset.points = "unlocked";
+      if (state.phase === "ready") host.dataset.points = "stay";
     }
     phaseTime += dt;
     if (state.phase === "switching") {
-      align(
-        activeTile,
-        0.5 +
-          smooth(phaseTime / 1.15) *
-            ((decisionOutcome(SCENARIOS[currentIndex], state.answer.choice)
-              .route === "switch"
-              ? 1
-              : 0) -
-              0.5),
-      );
+      const route = decisionOutcome(
+        SCENARIOS[currentIndex],
+        state.answer.choice,
+      ).route;
+      align(activeTile, pointAlignment(route, phaseTime));
       host.dataset.points =
-        phaseTime < 1.15
+        route === "switch" && phaseTime < PLAYBACK_TIMING.pointsMove
           ? "changing"
-          : decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route;
-      if (phaseTime >= 1.3) signal("switch");
+          : route;
+      if (phaseTime >= PLAYBACK_TIMING.pointsReady) signal("switch");
     }
     const motion = journey.step(dt);
     if (motion.extension) extendTrack(motion.extension);
@@ -681,9 +677,13 @@ function createWorld(host, callbacks) {
       journey.distance >= journey.routes[currentIndex].impactDistance
     )
       signal("impact");
-    if (state.phase === "impact" && phaseTime >= 0.55) signal("consequence");
+    if (state.phase === "impact" && phaseTime >= PLAYBACK_TIMING.impact)
+      signal("consequence");
     if (state.phase === "departing") {
-      if (currentIndex < SCENARIOS.length - 1 && phaseTime >= 1.7)
+      if (
+        currentIndex < SCENARIOS.length - 1 &&
+        phaseTime >= PLAYBACK_TIMING.consequence
+      )
         signal("next");
       else if (currentIndex === SCENARIOS.length - 1 && motion.station)
         signal("next");

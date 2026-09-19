@@ -42,3 +42,19 @@ test("demo and API use identical real dilemma text; API explicitly chooses whom 
     assert.ok(["left", "right"].includes(demo.choice));
   }
 });
+
+
+test("every dilemma keeps five on the default straight and one behind an intentional switch", () => {
+  for (const scenario of SCENARIOS) {
+    assert.equal(scenario.left.people, 5);
+    assert.equal(scenario.right.people, 1);
+    assert.match(scenario.left.label, /5名/);
+    assert.match(scenario.right.label, /1名/);
+    assert.equal(decisionOutcome(scenario, "left").route, "stay");
+    assert.equal(decisionOutcome(scenario, "right").route, "switch");
+    const prompt = decisionQuestion(scenario).questions.hit;
+    assert.match(prompt.instructions, /without moving the lever/);
+    assert.match(prompt.criteria.left, /レバーを動かさず/);
+    assert.match(prompt.criteria.right, /レバーを切り替え/);
+  }
+});

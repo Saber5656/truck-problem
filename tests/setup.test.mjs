@@ -30,8 +30,8 @@ test("the visible people counts agree with every scenario consequence", async ()
   assert.deepEqual(
     SCENARIOS.map(({ left, right }) => [left.people, right.people]),
     [
-      [1, 5],
-      [1, 4],
+      [5, 1],
+      [5, 1],
       [5, 1],
     ],
   );
