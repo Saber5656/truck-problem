@@ -1021,3 +1021,23 @@ button:disabled, select:disabled { cursor: not-allowed; }
  .jev-choice strong { font-size: 1.1rem; }
  .judgement-note { margin-top: 14px; padding-top: 12px; }
 }
+
+/* The title screen reveals no dilemma until the user starts the journey. */
+.start-screen { position: relative; display: grid; grid-template-columns: minmax(0,1.2fr) minmax(0,1fr); align-items: center; gap: 32px; min-height: 620px; padding: clamp(28px,5vw,76px); overflow: hidden; border: 1px solid var(--line); background: var(--navy) url('/assets/railway-skyline.png') center / cover; }
+.start-screen__copy { position: relative; z-index: 1; padding: 36px; background: #071027ee; border: 1px solid var(--cyan); border-radius: 12px; box-shadow: 0 0 24px #1ee4ff33; }
+.start-screen h1 { margin: 0; max-width: 9em; font-size: clamp(2rem,3.6vw,3.7rem); line-height: 1.35; text-wrap: balance; }
+.start-screen__copy p { margin: 20px 0 30px; color: #c9d8f2; line-height: 1.7; }
+.start-screen__copy .start-screen__notice { margin: 18px 0 0; font-size: .8rem; }
+.start-screen__jev { display: block; width: 100%; max-height: 510px; object-fit: contain; }
+@media (max-width:700px) {
+ .start-screen { min-height: 0; padding: 24px 18px; grid-template-columns: 1fr; gap: 16px; }
+ .start-screen__jev { grid-row: 1; height: 220px; }
+ .start-screen__copy { padding: 24px 20px; text-align: center; }
+ .start-screen h1 { margin: auto; font-size: clamp(1.6rem,6vw,2rem); }
+ .start-screen__copy p { margin: 14px 0 22px; }
+ .start-screen .primary-button { width: 100%; }
+}
+/* Anchor the disclosure to the whole header status, with or without a counter. */
+.topbar__status { position: relative; z-index: 10; }
+.mode-menu { position: static; }
+.mode-settings { right: 0; }

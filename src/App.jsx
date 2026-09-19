@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import RailwayScene from "./RailwayScene.jsx";
+import StartScreen from "./StartScreen.jsx";
 import { SCENARIOS, decisionOutcome } from "./scenarios.mjs";
 import { createDecisionSession } from "./game-api.mjs";
 import {
@@ -56,6 +57,7 @@ function ScoreRow({ label, values, keyName, tone }) {
 function App({ decisionProvider } = {}) {
   const [run, setRun] = useState(createRunState);
   const { roundIndex, phase, answer, history, gameFinished } = run;
+  const isStart = phase === "ready";
   const [showSettings, setShowSettings] = useState(false);
   const [mode, setMode] = useState("demo");
   const [configured, setConfigured] = useState(null);
@@ -66,7 +68,7 @@ function App({ decisionProvider } = {}) {
   const [attempt, setAttempt] = useState(0);
   const questionRef = useRef(null);
   const sceneRef = useRef(null);
-  const previousScreen = useRef(`${roundIndex}:${gameFinished}`);
+  const previousScreen = useRef(`${roundIndex}:${gameFinished}:${isStart}`);
   const scenario = SCENARIOS[roundIndex];
   const busy = [
     "judging",
@@ -84,7 +86,7 @@ function App({ decisionProvider } = {}) {
   const atStation = phase === "station" || phase === "arrived";
 
   useEffect(() => {
-    const screen = `${roundIndex}:${gameFinished}`;
+    const screen = `${roundIndex}:${gameFinished}:${isStart}`;
     if (previousScreen.current !== screen) {
       questionRef.current?.focus({ preventScroll: true });
       if (gameFinished || roundIndex === 0) window.scrollTo(0, 0);
@@ -95,7 +97,7 @@ function App({ decisionProvider } = {}) {
         });
       previousScreen.current = screen;
     }
-  }, [roundIndex, gameFinished]);
+  }, [roundIndex, gameFinished, isStart]);
 
   useEffect(() => {
     let active = true;
@@ -113,7 +115,7 @@ function App({ decisionProvider } = {}) {
   }, []);
 
   useEffect(() => {
-    if (phase !== "judging") return;
+    if (phase !== "judging" || !sceneReady || sceneError) return;
     const session = decisions.current;
     session.request(scenario, mode, attempt).then(
       (result) => {
@@ -126,10 +128,14 @@ function App({ decisionProvider } = {}) {
         setRun(failRound);
       },
     );
-  }, [phase, scenario, mode, attempt]);
+  }, [phase, scenario, mode, attempt, sceneReady, sceneError]);
 
   const play = () => {
-    if (!["ready", "error"].includes(phase) || !sceneReady || sceneError)
+    if (
+      !["ready", "error"].includes(phase) ||
+      sceneError ||
+      (phase === "error" && !sceneReady)
+    )
       return;
     if (phase === "error") setAttempt((value) => value + 1);
     setError("");
@@ -286,183 +292,202 @@ function App({ decisionProvider } = {}) {
               </div>
             )}
           </div>
-          <span className="topbar__round">
-            {String(roundIndex + 1).padStart(2, "0")} / 03
-          </span>
+          {!isStart && (
+            <span className="topbar__round">
+              {String(roundIndex + 1).padStart(2, "0")} / 03
+            </span>
+          )}
         </div>
       </header>
 
-      <section className="game-layout" aria-label="Jevトロッコ問題ゲーム">
-        <div className="play-field">
-          <div className="stage-visual stage-visual--playback">
-            <div className="question-block">
-              <h1 ref={questionRef} tabIndex={-1}>
-                {atStation
-                  ? phase === "arrived"
-                    ? "終点に到着しました。"
-                    : "終点駅へ。"
-                  : scenario.title}
-              </h1>
-              <p>
-                {atStation
-                  ? "Jevの3つの選択を振り返る。"
-                  : scenario.description}
-              </p>
-            </div>
-            <div className="action-strip playback-controls">
-              <div className="action-strip__hint" role="status">
-                <span
-                  className={`result-dot ${phase === "departing" ? "result-dot--match" : ""}`}
-                />
-                {status}
+      {isStart ? (
+        <StartScreen
+          headingRef={questionRef}
+          mode={mode}
+          disabled={mode === "live" && !configured}
+          onPlay={play}
+        />
+      ) : (
+        <section className="game-layout" aria-label="Jevトロッコ問題ゲーム">
+          <div className="play-field">
+            <div className="stage-visual stage-visual--playback">
+              <div className="question-block">
+                <h1 ref={questionRef} tabIndex={-1}>
+                  {atStation
+                    ? phase === "arrived"
+                      ? "終点に到着しました。"
+                      : "終点駅へ。"
+                    : scenario.title}
+                </h1>
+                <p>
+                  {atStation
+                    ? "Jevの3つの選択を振り返る。"
+                    : scenario.description}
+                </p>
               </div>
-              <button
-                className="primary-button primary-button--compact"
-                type="button"
-                disabled={
-                  busy ||
-                  !sceneReady ||
-                  !!sceneError ||
-                  (mode === "live" && !configured)
-                }
-                onClick={phase === "arrived" ? () => setRun(finishRun) : play}
-              >
-                {phase === "arrived"
-                  ? "結果を見る"
-                  : phase === "judging"
-                    ? "判定中…"
-                    : phase === "switching"
-                      ? "進路を設定中…"
-                      : busy
-                        ? "運行中…"
-                        : error
-                          ? "もう一度判定する"
-                          : "ゲームをプレイ"}
-              </button>
-              {mode === "live" && ["ready", "error"].includes(phase) && (
-                <span className="playback-mode-note">
-                  {phase === "error"
-                    ? "再試行は追加で残高を使用します"
-                    : "開始すると最大3回のAPI判定で残高を使用します"}
-                </span>
-              )}
-            </div>
-            {error && (
-              <p className="api-error" role="alert">
-                {error}
-              </p>
-            )}
-            <div
-              className={`railway-scene driver-scene driver-scene--${phase}`}
-              ref={sceneRef}
-              data-phase={phase}
-              data-route={outcome?.route || "pending"}
-              role="group"
-              aria-label="Jevの運転席から見た線路"
-            >
-              <RailwayScene
-                run={run}
-                onEvent={sceneEvent}
-                onReady={() => setSceneReady(true)}
-                onError={(message) => {
-                  setSceneError(message);
-                  setSceneReady(false);
-                }}
-              />
-              <div
-                className={`route-sign route-sign--left ${answer?.choice === "left" ? "route-sign--chosen" : ""}`}
-              >
-                <strong>{scenario.left.label}</strong>
-              </div>
-              <div
-                className={`route-sign route-sign--right ${answer?.choice === "right" ? "route-sign--chosen" : ""}`}
-              >
-                <strong>{scenario.right.label}</strong>
-              </div>
-              <img
-                className="cockpit-overlay"
-                src="/assets/jev-cockpit-overlay.png"
-                alt="Jevの手と運転席の操作盤"
-              />
-              <div className="impact-curtain" aria-hidden="true" />
-              {["impact", "departing"].includes(phase) && (
-                <div className="consequence-card" role="status">
-                  <strong>{consequence}</strong>
+              <div className="action-strip playback-controls">
+                <div className="action-strip__hint" role="status">
+                  <span
+                    className={`result-dot ${phase === "departing" ? "result-dot--match" : ""}`}
+                  />
+                  {status}
                 </div>
-              )}
-            </div>
-            {!atStation && (
-              <div
-                className="choice-dock"
-                aria-label="Jevが犠牲にする相手の2択"
-              >
-                <GroupCard
-                  option={scenario.left}
-                  tone="cyan"
-                  decided={!!answer}
-                  chosen={answer?.choice === "left"}
-                />
-                <div className="choice-dock__divider" aria-hidden="true" />
-                <GroupCard
-                  option={scenario.right}
-                  tone="red"
-                  decided={!!answer}
-                  chosen={answer?.choice === "right"}
-                />
-              </div>
-            )}
-          </div>
-        </div>
-
-        <aside className="intel-panel" aria-label="Jevの判断パネル">
-          <div className="intel-panel__header">
-            <h2>Jevの選択</h2>
-          </div>
-          <div className="mascot-frame">
-            <img src="/assets/jev-fox-mascot.png" alt="Jev、キツネの運転手" />
-          </div>
-          <div
-            className="jev-judgement"
-            aria-label="判定結果"
-            aria-live="polite"
-          >
-            {answer ? (
-              <>
-                <div className="section-heading">
-                  <span>犠牲にする相手</span>
-                  <span className="confidence-label">
-                    確信度 {answer.confidence}%
+                <button
+                  className="primary-button primary-button--compact"
+                  type="button"
+                  disabled={
+                    !sceneError &&
+                    (busy || !sceneReady || (mode === "live" && !configured))
+                  }
+                  onClick={
+                    sceneError
+                      ? restart
+                      : phase === "arrived"
+                        ? () => setRun(finishRun)
+                        : play
+                  }
+                >
+                  {sceneError
+                    ? "スタート画面に戻る"
+                    : !sceneReady
+                      ? "準備中…"
+                      : phase === "arrived"
+                        ? "結果を見る"
+                        : phase === "judging"
+                          ? "判定中…"
+                          : phase === "switching"
+                            ? "進路を設定中…"
+                            : busy
+                              ? "運行中…"
+                              : error
+                                ? "もう一度判定する"
+                                : "ゲームをプレイ"}
+                </button>
+                {mode === "live" && ["ready", "error"].includes(phase) && (
+                  <span className="playback-mode-note">
+                    {phase === "error"
+                      ? "再試行は追加で残高を使用します"
+                      : "開始すると最大3回のAPI判定で残高を使用します"}
                   </span>
-                </div>
-                <div className="jev-choice">
-                  <strong>{jevChoiceLabel}</strong>
-                </div>
-                <ScoreRow
-                  label={scenario.left.label}
-                  values={answer.probabilities}
-                  keyName="left"
-                  tone="cyan"
+                )}
+              </div>
+              {error && (
+                <p className="api-error" role="alert">
+                  {error}
+                </p>
+              )}
+              <div
+                className={`railway-scene driver-scene driver-scene--${phase}`}
+                ref={sceneRef}
+                data-phase={phase}
+                data-route={outcome?.route || "pending"}
+                role="group"
+                aria-label="Jevの運転席から見た線路"
+              >
+                <RailwayScene
+                  run={run}
+                  onEvent={sceneEvent}
+                  onReady={() => setSceneReady(true)}
+                  onError={(message) => {
+                    setSceneError(message);
+                    setSceneReady(false);
+                  }}
                 />
-                <ScoreRow
-                  label={scenario.right.label}
-                  values={answer.probabilities}
-                  keyName="right"
-                  tone="red"
+                <div
+                  className={`route-sign route-sign--left ${answer?.choice === "left" ? "route-sign--chosen" : ""}`}
+                >
+                  <strong>{scenario.left.label}</strong>
+                </div>
+                <div
+                  className={`route-sign route-sign--right ${answer?.choice === "right" ? "route-sign--chosen" : ""}`}
+                >
+                  <strong>{scenario.right.label}</strong>
+                </div>
+                <img
+                  className="cockpit-overlay"
+                  src="/assets/jev-cockpit-overlay.png"
+                  alt="Jevの手と運転席の操作盤"
                 />
-              </>
-            ) : (
-              <p>
-                {busy
-                  ? "Jevの判断を待っています…"
-                  : "プレイすると、ここに判定が表示されます。"}
-              </p>
-            )}
+                <div className="impact-curtain" aria-hidden="true" />
+                {["impact", "departing"].includes(phase) && (
+                  <div className="consequence-card" role="status">
+                    <strong>{consequence}</strong>
+                  </div>
+                )}
+              </div>
+              {!atStation && (
+                <div
+                  className="choice-dock"
+                  aria-label="Jevが犠牲にする相手の2択"
+                >
+                  <GroupCard
+                    option={scenario.left}
+                    tone="cyan"
+                    decided={!!answer}
+                    chosen={answer?.choice === "left"}
+                  />
+                  <div className="choice-dock__divider" aria-hidden="true" />
+                  <GroupCard
+                    option={scenario.right}
+                    tone="red"
+                    decided={!!answer}
+                    chosen={answer?.choice === "right"}
+                  />
+                </div>
+              )}
+            </div>
           </div>
-          <p className="judgement-note">
-            確率・確信度は倫理的な正解率ではありません。
-          </p>
-        </aside>
-      </section>
+
+          <aside className="intel-panel" aria-label="Jevの判断パネル">
+            <div className="intel-panel__header">
+              <h2>Jevの選択</h2>
+            </div>
+            <div className="mascot-frame">
+              <img src="/assets/jev-fox-mascot.png" alt="Jev、キツネの運転手" />
+            </div>
+            <div
+              className="jev-judgement"
+              aria-label="判定結果"
+              aria-live="polite"
+            >
+              {answer ? (
+                <>
+                  <div className="section-heading">
+                    <span>犠牲にする相手</span>
+                    <span className="confidence-label">
+                      確信度 {answer.confidence}%
+                    </span>
+                  </div>
+                  <div className="jev-choice">
+                    <strong>{jevChoiceLabel}</strong>
+                  </div>
+                  <ScoreRow
+                    label={scenario.left.label}
+                    values={answer.probabilities}
+                    keyName="left"
+                    tone="cyan"
+                  />
+                  <ScoreRow
+                    label={scenario.right.label}
+                    values={answer.probabilities}
+                    keyName="right"
+                    tone="red"
+                  />
+                </>
+              ) : (
+                <p>
+                  {busy
+                    ? "Jevの判断を待っています…"
+                    : "プレイすると、ここに判定が表示されます。"}
+                </p>
+              )}
+            </div>
+            <p className="judgement-note">
+              確率・確信度は倫理的な正解率ではありません。
+            </p>
+          </aside>
+        </section>
+      )}
     </main>
   );
 }
