@@ -187,7 +187,9 @@ function createWorld(host, callbacks) {
     map: texture,
     transparent: true,
     alphaTest: 0.08,
-    depthWrite: false,
+    // Visible sprite pixels must occlude farther transparent rail sections.
+    // Keep depth testing so nearer world geometry can still occlude the person.
+    depthWrite: true,
   });
   fadeIntoSky(personMaterial);
   const skylineTexture = new THREE.TextureLoader().load(
