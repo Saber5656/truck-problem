@@ -30,14 +30,14 @@ test("the visible people counts agree with every scenario consequence", async ()
   assert.deepEqual(
     SCENARIOS.map(({ left, right }) => [left.people, right.people]),
     [
+      [1, 5],
+      [1, 4],
       [5, 1],
-      [4, 1],
-      [2, 1],
     ],
   );
   for (const scenario of SCENARIOS) {
     for (const option of [scenario.left, scenario.right]) {
-      assert.ok(option.detail.includes(`${option.people}人`));
+      assert.ok(option.label.includes(`${option.people}名`));
     }
   }
 });

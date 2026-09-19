@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import RailwayScene from "./RailwayScene.jsx";
-import { SCENARIOS } from "./scenarios.mjs";
+import { SCENARIOS, decisionOutcome } from "./scenarios.mjs";
 import { requestDecision } from "./game-api.mjs";
 import {
   createRunState,
@@ -11,6 +11,8 @@ import {
   finishMotion,
   finishImpact,
   advanceRound,
+  arriveAtStation,
+  finishRun,
 } from "./game-logic.mjs";
 
 function PercentBar({ value, tone = "cyan" }) {
@@ -24,13 +26,13 @@ function PercentBar({ value, tone = "cyan" }) {
   );
 }
 
-function RouteCard({ option, tone, chosen }) {
+function GroupCard({ option, tone, chosen }) {
   return (
     <div
       className={`choice-button choice-button--${tone} ${chosen ? "is-selected" : ""}`}
     >
       <span className="choice-button__eyebrow">
-        {chosen ? "JEV'S ROUTE / 選ばれた進路" : option.caption}
+        {chosen ? "JEV'S CHOICE / 助ける相手" : option.caption}
       </span>
       <span className="choice-button__label">{option.label}</span>
       <span className="choice-button__detail">{option.detail}</span>
@@ -70,13 +72,14 @@ function App() {
     "moving",
     "impact",
     "departing",
+    "station",
   ].includes(phase);
+  const outcome = answer && decisionOutcome(scenario, answer.choice);
   const consequence =
-    answer &&
-    `${(answer.choice === "stay" ? scenario.left : scenario.right).detail.replace("巻き込まれる", "巻き込まれました")}`;
-  const jevChoiceLabel =
-    answer &&
-    (answer.choice === "stay" ? scenario.left.label : scenario.right.label);
+    outcome &&
+    `${outcome.saved.label}を助け、${outcome.sacrificed.label}が犠牲になりました`;
+  const jevChoiceLabel = outcome?.saved.label;
+  const atStation = phase === "station" || phase === "arrived";
 
   useEffect(() => {
     const screen = `${roundIndex}:${gameFinished}`;
@@ -130,6 +133,7 @@ function App() {
       switch: finishSwitch,
       impact: finishMotion,
       consequence: finishImpact,
+      arrived: arriveAtStation,
     };
     if (event === "next")
       setRun((current) => advanceRound(current, SCENARIOS.length));
@@ -158,9 +162,9 @@ function App() {
             / 3
           </p>
           <h1 ref={questionRef} tabIndex={-1}>
-            Jevが選んだ、
+            Jevが助けた人。
             <br />
-            3つの進路。
+            犠牲になった人。
           </h1>
           <ol className="decision-history">
             {history.map(({ roundIndex: index, answer: decision }) => (
@@ -171,18 +175,25 @@ function App() {
                 <strong
                   className={`decision-history__choice decision-history__choice--${decision.choice}`}
                 >
-                  {decision.choice === "stay"
+                  {decision.choice === "left"
                     ? SCENARIOS[index].left.label
                     : SCENARIOS[index].right.label}
                 </strong>
                 <span>
-                  {(decision.choice === "stay"
-                    ? SCENARIOS[index].left
-                    : SCENARIOS[index].right
-                  ).detail.replace("巻き込まれる", "巻き込まれました")}
+                  助けた相手：
+                  {
+                    decisionOutcome(SCENARIOS[index], decision.choice).saved
+                      .label
+                  }
                   <br />
-                  選択確率 {decision.probabilities[decision.choice]}% · 確信度{" "}
-                  {decision.confidence}%
+                  犠牲になった相手：
+                  {
+                    decisionOutcome(SCENARIOS[index], decision.choice)
+                      .sacrificed.label
+                  }
+                  <br />
+                  助ける選択の確率 {decision.probabilities[decision.choice]}% ·
+                  確信度 {decision.confidence}%
                 </span>
               </li>
             ))}
@@ -209,16 +220,20 @@ function App() {
     (!sceneReady
       ? "運転席を準備しています…"
       : phase === "judging"
-        ? "Jevが進路を判断しています…"
+        ? "Jevが助ける相手を判断しています…"
         : phase === "switching"
-          ? `${jevChoiceLabel} — 分岐器を合わせています`
+          ? `${jevChoiceLabel}を助ける — 分岐器を合わせています`
           : phase === "moving"
-            ? `${jevChoiceLabel} — 線路に沿って走行中`
+            ? `${jevChoiceLabel}を助けるため、反対側へ走行中`
             : phase === "impact"
               ? consequence
               : phase === "departing"
-                ? `${consequence}。${roundIndex < 2 ? "次の分岐へ進んでいます" : "運行を終えます"}`
-                : "プレイを押すと、Jevが進路を選びます");
+                ? `${consequence}。${roundIndex < 2 ? "次の分岐へ進んでいます" : "終点駅へ向かいます"}`
+                : phase === "station"
+                  ? "3つの問いを終え、終点駅へ向かっています"
+                  : phase === "arrived"
+                    ? "終点に到着しました。3つの判断を振り返れます"
+                    : "プレイを押すと、Jevが助ける相手を選びます");
 
   return (
     <main className="game-shell">
@@ -249,15 +264,29 @@ function App() {
         <div className="play-field">
           <div className="stage-visual stage-visual--playback">
             <div className="stage-visual__topline">
-              <span className="stage-chip">{scenario.kicker}</span>
+              <span className="stage-chip">
+                {atStation ? "終点 / TERMINUS" : scenario.kicker}
+              </span>
               <span className="stage-slogan">Jevが選ぶ。未来が動く。</span>
             </div>
             <div className="question-block">
-              <p className="eyebrow eyebrow--cyan">TROLLEY DILEMMA</p>
+              <p className="eyebrow eyebrow--cyan">
+                {atStation
+                  ? "END OF THE LINE"
+                  : "どちらを助ける？ / WHO WILL JEV SAVE?"}
+              </p>
               <h1 ref={questionRef} tabIndex={-1}>
-                {scenario.title}
+                {atStation
+                  ? phase === "arrived"
+                    ? "終点に到着しました。"
+                    : "終点駅へ。"
+                  : scenario.title}
               </h1>
-              <p>{scenario.description}</p>
+              <p>
+                {atStation
+                  ? "3つの選択の先に、この駅があります。Jevが助けた人と、犠牲になった人を振り返ります。"
+                  : scenario.description}
+              </p>
             </div>
             <div className="playback-mode-control">
               <label htmlFor="decision-mode">判定モード</label>
@@ -292,17 +321,19 @@ function App() {
                   !!sceneError ||
                   (mode === "live" && !configured)
                 }
-                onClick={play}
+                onClick={phase === "arrived" ? () => setRun(finishRun) : play}
               >
-                {phase === "judging"
-                  ? "判定中…"
-                  : phase === "switching"
-                    ? "進路を設定中…"
-                    : busy
-                      ? "運行中…"
-                      : error
-                        ? "もう一度判定する"
-                        : "ゲームをプレイ"}
+                {phase === "arrived"
+                  ? "結果を見る"
+                  : phase === "judging"
+                    ? "判定中…"
+                    : phase === "switching"
+                      ? "進路を設定中…"
+                      : busy
+                        ? "運行中…"
+                        : error
+                          ? "もう一度判定する"
+                          : "ゲームをプレイ"}
               </button>
               <span className="playback-mode-note">
                 {mode === "demo"
@@ -319,7 +350,7 @@ function App() {
               className={`railway-scene driver-scene driver-scene--${phase}`}
               ref={sceneRef}
               data-phase={phase}
-              data-route={answer?.choice || "pending"}
+              data-route={outcome?.route || "pending"}
               role="group"
               aria-label="Jevの運転席から見た線路"
             >
@@ -333,23 +364,31 @@ function App() {
                 }}
               />
               <span className="points-indicator" aria-live="polite">
-                {phase === "switching"
-                  ? "分岐器 · 切り替え中"
-                  : answer
-                    ? `進路固定 · ${answer.choice === "stay" ? "直進" : "支線"}`
-                    : "分岐器 · 待機"}
+                {atStation
+                  ? phase === "arrived"
+                    ? "終点 · 停車中"
+                    : "終点駅へ · 減速中"
+                  : phase === "switching"
+                    ? "分岐器 · 切り替え中"
+                    : answer
+                      ? `進路固定 · ${outcome.route === "stay" ? "直進" : "支線"}`
+                      : "分岐器 · 待機"}
               </span>
               <div
-                className={`route-sign route-sign--left ${answer?.choice === "stay" ? "route-sign--chosen" : ""}`}
+                className={`route-sign route-sign--left ${answer?.choice === "left" ? "route-sign--chosen" : ""}`}
               >
-                <span>現在の進路</span>
-                <strong>{scenario.left.people}人</strong>
+                <span>
+                  {answer?.choice === "left" ? "助ける相手" : "左側の人たち"}
+                </span>
+                <strong>{scenario.left.label}</strong>
               </div>
               <div
-                className={`route-sign route-sign--right ${answer?.choice === "switch" ? "route-sign--chosen" : ""}`}
+                className={`route-sign route-sign--right ${answer?.choice === "right" ? "route-sign--chosen" : ""}`}
               >
-                <span>切り替え先</span>
-                <strong>{scenario.right.people}人</strong>
+                <span>
+                  {answer?.choice === "right" ? "助ける相手" : "右側の人たち"}
+                </span>
+                <strong>{scenario.right.label}</strong>
               </div>
               <img
                 className="cockpit-overlay"
@@ -362,28 +401,29 @@ function App() {
                 <div className="consequence-card">
                   <span>
                     この選択の結果 ·{" "}
-                    {roundIndex < 2 ? "次の分岐へ" : "運行終了へ"}
+                    {roundIndex < 2 ? "次の分岐へ" : "終点駅へ"}
                   </span>
                   <strong>{consequence}</strong>
                 </div>
               )}
             </div>
-            <div className="choice-dock" aria-label="Jevが判断する2つの進路">
-              <RouteCard
-                option={scenario.left}
-                tone="cyan"
-                chosen={answer?.choice === "stay"}
-              />
-              <div className="choice-dock__divider" aria-hidden="true" />
-              <RouteCard
-                option={scenario.right}
-                tone="red"
-                chosen={answer?.choice === "switch"}
-              />
-            </div>
+            {!atStation && (
+              <div className="choice-dock" aria-label="Jevが助ける相手の2択">
+                <GroupCard
+                  option={scenario.left}
+                  tone="cyan"
+                  chosen={answer?.choice === "left"}
+                />
+                <div className="choice-dock__divider" aria-hidden="true" />
+                <GroupCard
+                  option={scenario.right}
+                  tone="red"
+                  chosen={answer?.choice === "right"}
+                />
+              </div>
+            )}
             <p className="stage-note">
-              Jevの回答 → 分岐器 → 走行 → 衝突 →
-              次の分岐。衝突は暗転で表現します。
+              架空の思考実験です。助けると選んだ相手の、反対側へ進みます。3問の後は終点駅へ。
             </p>
           </div>
         </div>
@@ -418,8 +458,8 @@ function App() {
             <span className="mini-label">JEV / STRUCTURED DECISION</span>
             <p>
               {mode === "demo"
-                ? "Jevの動きを体験するデモです。判定・数値・投票は架空です。"
-                : "Jevが選んだ進路に、トロッコが進みます。返された確率・確信度も表示します。"}
+                ? "質問は実APIモードと共通です。デモの判定・数値・投票は架空です。"
+                : "Jevは助ける相手を選びます。トロッコは反対側へ進みます。返された確率・確信度も表示します。"}
             </p>
           </div>
           <div className="connection-controls">
@@ -451,8 +491,8 @@ function App() {
                 <div className="section-heading">
                   <span>
                     {answer.source === "demo"
-                      ? "デモの選択（固定値）"
-                      : "Jevの選択（API応答）"}
+                      ? "デモが助ける相手（固定値）"
+                      : "Jevが助ける相手（API応答）"}
                   </span>
                   <span className="confidence-label">
                     確信度 {answer.confidence}%
@@ -465,21 +505,23 @@ function App() {
                 <ScoreRow
                   label={scenario.left.label}
                   values={answer.probabilities}
-                  keyName="stay"
+                  keyName="left"
                   tone="cyan"
                 />
                 <ScoreRow
                   label={scenario.right.label}
                   values={answer.probabilities}
-                  keyName="switch"
+                  keyName="right"
                   tone="red"
                 />
                 <p>
                   {answer.source === "demo"
                     ? "動作確認用の架空の値です。Jevには問い合わせていません。"
-                    : "TypeSafeから受け取った選択・確率・確信度です。"}
+                    : "TypeSafeから受け取った、助ける相手の選択・確率・確信度です。"}
                 </p>
-                <p>確率・確信度は倫理的な正解率ではありません。</p>
+                <p>
+                  助ける相手を選ぶ確率です。生存確率や倫理的な正解率ではありません。
+                </p>
               </>
             ) : (
               <p>
@@ -497,13 +539,13 @@ function App() {
             <ScoreRow
               label={scenario.left.label}
               values={scenario.poll}
-              keyName="stay"
+              keyName="left"
               tone="cyan"
             />
             <ScoreRow
               label={scenario.right.label}
               values={scenario.poll}
-              keyName="switch"
+              keyName="right"
               tone="red"
             />
           </div>
@@ -529,7 +571,7 @@ function App() {
       <footer className="footer-bar">
         <span>Jevが選ぶ、で世界は動く。</span>
         <span>
-          {history.length} / {SCENARIOS.length} 問運行終了
+          {history.length} / {SCENARIOS.length} 問回答済み
         </span>
         <span>Jevは判断、あなたは意味をつくる。</span>
       </footer>

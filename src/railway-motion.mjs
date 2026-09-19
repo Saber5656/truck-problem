@@ -1,6 +1,7 @@
 // All coordinates are metres. The camera and both rail meshes share this path.
 export const START_Z = 8;
-export const TILE_LENGTH = 72;
+export const TILE_LENGTH = 96;
+export const END_Z = START_Z - TILE_LENGTH;
 export const PEOPLE_Z = -42;
 export const GAUGE = 1.6;
 export const clamp = (n, a = 0, b = 1) => Math.max(a, Math.min(b, n));
@@ -10,11 +11,13 @@ export const smooth = (t) => {
 };
 
 export function centerAtZ(choice, z) {
-  return { x: choice === "switch" ? 8 * smooth((-z - 4) / 32) : 0, z };
+  const outward = smooth((-z - 4) / 32);
+  const inward = smooth((-z - 48) / 32);
+  return { x: choice === "switch" ? 8 * outward * (1 - inward) : 0, z };
 }
 export function nextOrigin(origin, choice) {
   return {
-    x: origin.x + (choice === "switch" ? 8 : 0),
+    x: origin.x,
     z: origin.z - TILE_LENGTH,
   };
 }
@@ -22,8 +25,8 @@ export function makeRoute(choice, origin = { x: 0, z: 0 }) {
   const points = [];
   let length = 0,
     impactDistance = 0;
-  // 720 steps put the impact plane exactly on the table at z=-41.
-  for (let i = 0; i <= 720; i++) {
+  // 0.1 metre steps put the impact plane exactly on the table at z=-41.
+  for (let i = 0; i <= TILE_LENGTH * 10; i++) {
     const local = centerAtZ(choice, START_Z - i / 10);
     const position = { x: local.x + origin.x, z: local.z + origin.z };
     if (i)
@@ -69,4 +72,17 @@ export function switchBladePoint(side, fraction, alignment) {
   const toe = (side * GAUGE) / 2 + (side < 0 ? aligned : aligned - 1) * 0.28;
   const heel = side < 0 ? -GAUGE / 2 : centerAtZ("switch", -12).x + GAUGE / 2;
   return { x: toe + (heel - toe) * smooth(t), z: -4 - 8 * t };
+}
+
+export function makeStationRoute(rounds) {
+  const startZ = START_Z - TILE_LENGTH * rounds;
+  const length = 48;
+  return {
+    points: [
+      { x: 0, z: startZ, distance: 0 },
+      { x: 0, z: startZ - length, distance: length },
+    ],
+    length,
+    bufferZ: startZ - length - 8,
+  };
 }

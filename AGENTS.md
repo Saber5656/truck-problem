@@ -33,6 +33,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 - Canonical product checkout is `~/dev/jev-trolley-game`, separate from both Vaults. Keep the original source intact. Vault is for context and references only.
 - Keep trolley playback visible on narrow screens. Announce the consequence, then reveal the next connected junction and question automatically. Do not add a Next button. Each new Jev answer requires explicit Play; do not auto-call the API. New questions and replay return focus to the heading.
-- People are placed on the forward tracks using each scenario's actual 5/1, 4/1 or 2/1 counts. Show approach, a brief non-graphic impact transition, then the consequence. Keep the cockpit fixed while the world approaches.
+- People are placed on the forward tracks using each scenario's actual group counts. Show approach, a brief non-graphic impact transition, then the consequence. Keep the cockpit fixed while the world approaches.
 
 - Use the same 3D rail centerline for cockpit motion and rail meshes. Animate the movable point blades after the answer and before departure. Never restore CSS background zoom/sideways translation as train movement (user correction 2026-09-19).
+
+- Questions and choices must ask whom to SAVE, using group names and ethically conflicting fictional premises. Demo and API share identical production scenario text. Choice left/right names the saved group; travel goes to the opposite track. Display both saved and sacrificed groups.
+- All rails exist before departure and reconnect after each group; no visible dangling track ends. After the last dilemma, travel to the terminus, stop at the platform, then allow the result screen (2026-09-19).

@@ -9,6 +9,9 @@ import {
   TILE_LENGTH,
   START_Z,
   PEOPLE_Z,
+  END_Z,
+  centerAtZ,
+  makeStationRoute,
 } from "../src/railway-motion.mjs";
 
 test("both routes share the incoming track and have smooth forward tangents", () => {
@@ -68,4 +71,31 @@ test("movable blades visibly move but keep a common heel, with bounded travel", 
   assert.deepEqual(switchBladePoint(-1, 1, 0), switchBladePoint(-1, 1, 1));
   const mid = switchBladePoint(-1, 0, 0.5);
   assert.equal(mid.x, (a.x + b.x) / 2);
+});
+
+test("both branches rejoin one trunk with no open ends between dilemmas", () => {
+  for (let index = 0; index < 3; index++) {
+    const origin = { x: 0, z: -index * TILE_LENGTH };
+    const stay = makeRoute("stay", origin),
+      branch = makeRoute("switch", origin);
+    assert.deepEqual(
+      sampleRoute(stay, stay.length),
+      sampleRoute(branch, branch.length),
+    );
+    assert.equal(centerAtZ("switch", END_Z).x, 0);
+    assert.equal(nextOrigin(origin, "stay").x, nextOrigin(origin, "switch").x);
+  }
+});
+test("the last trunk connects to a station path that stops short of its buffer", () => {
+  const origin = { x: 0, z: -2 * TILE_LENGTH };
+  const rail = makeRoute("switch", origin),
+    station = makeStationRoute(3);
+  assert.deepEqual(
+    sampleRoute(rail, rail.length).position,
+    sampleRoute(station, 0).position,
+  );
+  assert.ok(station.length > 30);
+  assert.ok(
+    sampleRoute(station, station.length).position.z > station.bufferZ + 3,
+  );
 });

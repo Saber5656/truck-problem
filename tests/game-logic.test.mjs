@@ -9,11 +9,13 @@ import {
   finishMotion,
   finishImpact,
   advanceRound,
+  arriveAtStation,
+  finishRun,
 } from "../src/game-logic.mjs";
 
 const answer = {
-  choice: "switch",
-  probabilities: { stay: 8, switch: 92 },
+  choice: "right",
+  probabilities: { left: 8, right: 92 },
   confidence: 60,
   source: "demo",
 };
@@ -28,7 +30,7 @@ test("Play starts Jev without requiring a player choice, then moves before recor
   assert.equal(finishMotion(switching), switching);
   const moving = finishSwitch(switching);
   assert.equal(moving.phase, "moving");
-  assert.equal(moving.answer.choice, "switch");
+  assert.equal(moving.answer.choice, "right");
   assert.equal(moving.history.length, 0);
   const impact = finishMotion(moving);
   assert.equal(impact.phase, "impact");
@@ -94,18 +96,24 @@ test("three arrivals finish the run once; replay clears every decision", () => {
         finishSwitch(
           receiveDecision(beginRound(state), {
             ...answer,
-            choice: round === 1 ? "stay" : "switch",
+            choice: round === 1 ? "left" : "right",
           }),
         ),
       ),
     );
     state = advanceRound(state, 3);
   }
+  assert.equal(state.gameFinished, false);
+  assert.equal(state.phase, "station");
+  assert.equal(finishRun(state), state);
+  state = arriveAtStation(state);
+  assert.equal(state.phase, "arrived");
+  state = finishRun(state);
   assert.equal(state.gameFinished, true);
   assert.equal(state.history.length, 3);
   assert.deepEqual(
     state.history.map((entry) => entry.answer.choice),
-    ["switch", "stay", "switch"],
+    ["right", "left", "right"],
   );
   assert.equal(beginRound(state), state);
   assert.equal(advanceRound(state, 3), state);
@@ -133,4 +141,16 @@ test("point lock is required before motion and may complete only once", () => {
   assert.equal(advanceRound(switching, 3), switching);
   const moving = finishSwitch(switching);
   assert.equal(finishSwitch(moving), moving);
+});
+
+test("station arrival cannot skip unanswered questions or consume another decision", () => {
+  const ready = createRunState();
+  assert.equal(arriveAtStation(ready), ready);
+  assert.equal(finishRun(ready), ready);
+  const station = { ...ready, phase: "station", roundIndex: 2 };
+  assert.equal(beginRound(station), station);
+  const arrived = arriveAtStation(station);
+  assert.equal(beginRound(arrived), arrived);
+  assert.equal(arriveAtStation(arrived), arrived);
+  assert.equal(finishRun(arrived).gameFinished, true);
 });

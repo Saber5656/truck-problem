@@ -892,8 +892,8 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .decision-history li { display: grid; gap: 8px; padding: 16px; background: #081027; border: 1px solid var(--line); font-size: .78rem; color: #bccce5; line-height: 1.6; }
 .decision-history .mini-label { letter-spacing: .04em; }
 .decision-history__choice { font-size: 1.2rem; }
-.decision-history__choice--stay { color: var(--cyan); }
-.decision-history__choice--switch { color: var(--red-soft); }
+.decision-history__choice--left { color: var(--cyan); }
+.decision-history__choice--right { color: var(--red-soft); }
 .connection-controls { grid-column: 1 / -1; }
 @media (max-width: 620px) {
   .stage-visual--playback .stage-visual__topline { padding: 14px 12px 0; }
@@ -932,7 +932,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
 }
 
 /* The cockpit is fixed; rail geometry and camera move in one 3D world. */
-.driver-scene { aspect-ratio: 2.1; background: #071027 url('/assets/railway-skyline.png') center / cover; }
+.driver-scene { aspect-ratio: 2.6; background: #071027 url('/assets/railway-skyline.png') center / cover; }
 .railway-canvas { position: absolute; inset: 0; }
 .railway-canvas canvas { display: block; width: 100%; height: 100%; }
 .cockpit-overlay { position: absolute; width: 100%; height: auto; bottom: 0; left: 0; pointer-events: none; z-index: 3; }
@@ -959,3 +959,19 @@ button:disabled, select:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   .driver-scene .impact-curtain { transition: none; opacity: 0; }
 }
+
+/* Group labels are choices about rescue, independent of the physical route. */
+.driver-scene .route-sign { max-width: 30%; }
+.driver-scene .route-sign strong { font-size: clamp(.75rem,1.25vw,1.15rem); line-height: 1.4; }
+.driver-scene--station .route-sign, .driver-scene--arrived .route-sign { display: none; }
+.consequence-card { width: min(600px, 88%); }
+.consequence-card strong { font-size: clamp(.8rem,1.2vw,1.15rem); }
+@media (max-width:620px) {
+ .driver-scene .route-sign { width: 31%; max-width:31%; }
+ .driver-scene .route-sign strong { font-size: .7rem; }
+ .stage-visual--playback .choice-button__label { font-size: .96rem; line-height:1.4; }
+ .stage-visual--playback .question-block h1 { font-size:1.32rem; }
+ .stage-visual--playback .question-block .eyebrow { font-size:.57rem; letter-spacing:.04em; }
+}
+
+.stage-visual--playback .question-block p { text-wrap: pretty; }

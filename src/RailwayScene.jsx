@@ -1,14 +1,16 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
-import { SCENARIOS } from "./scenarios.mjs";
+import { SCENARIOS, decisionOutcome } from "./scenarios.mjs";
 import {
   GAUGE,
   START_Z,
+  END_Z,
+  TILE_LENGTH,
+  makeStationRoute,
   PEOPLE_Z,
   centerAtZ,
   makeRoute,
   sampleRoute,
-  nextOrigin,
   journeyDistance,
   switchBladePoint,
   smooth,
@@ -70,7 +72,7 @@ function ribbon(points, width, height = 0.13, y = 0.15) {
   geometry.computeVertexNormals();
   return geometry;
 }
-function trackPoints(choice, start = 16, end = -64, offset = 0) {
+function trackPoints(choice, start = 16, end = END_Z, offset = 0) {
   const points = [];
   for (let z = start; z >= end - 0.001; z -= 0.25) {
     const p = centerAtZ(choice, z),
@@ -131,8 +133,9 @@ function createWorld(host, callbacks) {
   let dirty = true;
   let dead = false,
     texturesReady = false,
+    personReady = false,
+    stationReady = false,
     activeTile,
-    upcoming,
     currentIndex = -1;
   let phaseKey = "",
     phaseTime = 0,
@@ -152,7 +155,8 @@ function createWorld(host, callbacks) {
     "/assets/railway-person.png",
     () => {
       if (!dead) {
-        texturesReady = true;
+        personReady = true;
+        texturesReady = personReady && stationReady;
         dirty = true;
       }
     },
@@ -208,8 +212,16 @@ function createWorld(host, callbacks) {
       blades = [];
     for (const choice of ["stay", "switch"]) {
       const start = choice === "stay" ? START_Z : -4;
+      const end = choice === "stay" ? END_Z : -80;
       const bed = new THREE.Mesh(
-        remember(ribbon(trackPoints(choice, start), 3.1, 0.18, -0.18)),
+        remember(
+          ribbon(
+            trackPoints(choice, start, end),
+            3.1,
+            0.18,
+            choice === "stay" ? -0.18 : -0.185,
+          ),
+        ),
         materials.ballast,
       );
       group.add(bed);
@@ -217,7 +229,7 @@ function createWorld(host, callbacks) {
         group.add(
           new THREE.Mesh(
             remember(
-              ribbon(trackPoints(choice, start, -64, (side * GAUGE) / 2), 0.11),
+              ribbon(trackPoints(choice, start, end, (side * GAUGE) / 2), 0.11),
             ),
             materials.rail,
           ),
@@ -247,7 +259,7 @@ function createWorld(host, callbacks) {
         new THREE.Mesh(
           remember(
             ribbon(
-              trackPoints(choice, start, -64, choice === "stay" ? -1.4 : 1.4),
+              trackPoints(choice, start, end, choice === "stay" ? -1.4 : 1.4),
               0.05,
               0.025,
               0.045,
@@ -259,6 +271,7 @@ function createWorld(host, callbacks) {
       const personGroup = new THREE.Group();
       people[choice] = personGroup;
       group.add(personGroup);
+      personGroup.visible = index === 0;
       const count =
         choice === "stay"
           ? SCENARIOS[index].left.people
@@ -284,7 +297,7 @@ function createWorld(host, callbacks) {
         0.9,
         PEOPLE_Z,
       );
-      group.add(marker);
+      personGroup.add(marker);
     }
     for (const side of [-1, 1]) {
       const blade = new THREE.Mesh(new THREE.BufferGeometry(), materials.blade);
@@ -308,6 +321,136 @@ function createWorld(host, callbacks) {
     align(tile, 0.5);
     return tile;
   }
+  // Every rail exists from the first frame. Both branches rejoin the next trunk.
+  for (let index = 0; index < SCENARIOS.length; index++)
+    addTile(index, { x: 0, z: -TILE_LENGTH * index });
+  const stationRoute = makeStationRoute(SCENARIOS.length);
+  const stationGroup = new THREE.Group();
+  scene.add(stationGroup);
+  const stationStart = stationRoute.points[0].z,
+    stationEnd = stationRoute.bufferZ;
+  const straight = (offset = 0) => [
+    { x: offset, z: stationStart },
+    { x: offset, z: stationEnd },
+  ];
+  stationGroup.add(
+    new THREE.Mesh(
+      remember(ribbon(straight(), 3.1, 0.18, -0.18)),
+      materials.ballast,
+    ),
+  );
+  for (const side of [-1, 1])
+    stationGroup.add(
+      new THREE.Mesh(
+        remember(ribbon(straight((side * GAUGE) / 2), 0.11)),
+        materials.rail,
+      ),
+    );
+  const stationTies = new THREE.InstancedMesh(
+    sleeperGeometry,
+    materials.wood,
+    Math.ceil((stationStart - stationEnd) / 0.75),
+  );
+  const tiePose = new THREE.Object3D();
+  for (let i = 0; i < stationTies.count; i++) {
+    tiePose.position.set(0, 0.015, stationStart - i * 0.75);
+    tiePose.updateMatrix();
+    stationTies.setMatrixAt(i, tiePose.matrix);
+  }
+  stationGroup.add(stationTies);
+  const structure = (
+    width,
+    height,
+    depth,
+    x,
+    y,
+    z,
+    material = materials.dark,
+  ) => {
+    const mesh = new THREE.Mesh(
+      remember(new THREE.BoxGeometry(width, height, depth)),
+      material,
+    );
+    mesh.position.set(x, y, z);
+    stationGroup.add(mesh);
+    return mesh;
+  };
+  const platformCenter = stationStart - 42;
+  for (const side of [-1, 1]) {
+    structure(5, 0.7, 36, side * 4.25, 0.2, platformCenter, materials.ballast);
+    structure(
+      0.12,
+      0.025,
+      36,
+      side * 1.82,
+      0.57,
+      platformCenter,
+      side < 0 ? materials.cyan : materials.red,
+    );
+    structure(
+      5.4,
+      0.18,
+      31,
+      side * 4.4,
+      4.4,
+      platformCenter - 1,
+      materials.dark,
+    );
+    for (let i = 0; i < 5; i++) {
+      const z = platformCenter + 12 - i * 6;
+      structure(0.14, 3.8, 0.14, side * 6.2, 2.4, z, materials.rail);
+      structure(
+        3,
+        0.04,
+        0.1,
+        side * 4.2,
+        4.28,
+        z,
+        side < 0 ? materials.cyan : materials.red,
+      );
+    }
+  }
+  // A real buffer stop ends the station siding; the train stops eight metres before it.
+  structure(2.2, 0.25, 0.3, 0, 1.0, stationEnd + 1, materials.blade);
+  for (const side of [-1, 1])
+    structure(
+      0.22,
+      0.8,
+      0.8,
+      side * 0.75,
+      0.55,
+      stationEnd + 0.6,
+      materials.rail,
+    );
+  const stationTexture = new THREE.TextureLoader().load(
+    "/assets/terminal-station.png",
+    () => {
+      if (!dead) {
+        stationReady = true;
+        texturesReady = personReady && stationReady;
+        dirty = true;
+      }
+    },
+    undefined,
+    () =>
+      callbacks.error(
+        "終点駅の画像を読み込めませんでした。ページを再読み込みしてください。",
+      ),
+  );
+  stationTexture.colorSpace = THREE.SRGBColorSpace;
+  const stationMaterial = new THREE.MeshBasicMaterial({
+    map: stationTexture,
+    transparent: true,
+    alphaTest: 0.02,
+    side: THREE.DoubleSide,
+  });
+  const facade = new THREE.Mesh(
+    remember(new THREE.PlaneGeometry(27, 13.5)),
+    stationMaterial,
+  );
+  facade.position.set(0, 6.9, stationEnd - 14);
+  stationGroup.add(facade);
+
   function align(tile, value) {
     if (Math.abs(tile.alignment - value) < 0.0001) return;
     tile.alignment = value;
@@ -362,11 +505,7 @@ function createWorld(host, callbacks) {
     if (!state) return;
     if (state.roundIndex !== currentIndex) {
       currentIndex = state.roundIndex;
-      activeTile =
-        upcoming?.index === currentIndex
-          ? upcoming
-          : addTile(currentIndex, { x: 0, z: 0 });
-      upcoming = null;
+      activeTile = tiles[currentIndex];
       motionRoute = makeRoute("stay", activeTile.origin);
       setCamera(motionRoute, 0);
       host.dataset.junction = String(currentIndex + 1);
@@ -379,17 +518,26 @@ function createWorld(host, callbacks) {
       dirty = true;
       if (state.phase === "moving") {
         travelTime = 0;
-        motionRoute = makeRoute(state.answer.choice, activeTile.origin);
+        motionRoute = makeRoute(
+          decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route,
+          activeTile.origin,
+        );
       }
       if (state.phase === "impact")
-        activeTile.people[state.answer.choice].visible = false;
+        activeTile.people[
+          decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route
+        ].visible = false;
       if (state.phase === "departing" && currentIndex < SCENARIOS.length - 1) {
-        upcoming = addTile(
-          currentIndex + 1,
-          nextOrigin(activeTile.origin, state.answer.choice),
-        );
+        for (const group of Object.values(tiles[currentIndex + 1].people))
+          group.visible = true;
         host.dataset.nextJunction = "visible";
       }
+      if (state.phase === "station") {
+        motionRoute = stationRoute;
+        travelTime = 0;
+        host.dataset.station = "approaching";
+      }
+      if (state.phase === "arrived") host.dataset.station = "arrived";
       if (state.phase === "ready") {
         host.dataset.nextJunction = "hidden";
         host.dataset.travel = "stopped";
@@ -402,14 +550,21 @@ function createWorld(host, callbacks) {
         activeTile,
         0.5 +
           smooth(phaseTime / 1.15) *
-            ((state.answer.choice === "switch" ? 1 : 0) - 0.5),
+            ((decisionOutcome(SCENARIOS[currentIndex], state.answer.choice)
+              .route === "switch"
+              ? 1
+              : 0) -
+              0.5),
       );
-      host.dataset.points = phaseTime < 1.15 ? "changing" : state.answer.choice;
+      host.dataset.points =
+        phaseTime < 1.15
+          ? "changing"
+          : decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route;
       if (phaseTime >= 1.3) signal("switch");
     }
     if (["moving", "impact", "departing"].includes(state.phase)) {
       travelTime += dt;
-      const duration = 8.6;
+      const duration = 10.8;
       const distance = journeyDistance(
         travelTime,
         motionRoute.length,
@@ -426,7 +581,9 @@ function createWorld(host, callbacks) {
               : "curve-exit"
             : localZ > PEOPLE_Z
               ? "approach-people"
-              : "passed";
+              : localZ > -65
+                ? "rejoining"
+                : "next-junction";
       if (!reduced.matches) setCamera(motionRoute, distance);
       if (
         state.phase === "moving" &&
@@ -442,6 +599,21 @@ function createWorld(host, callbacks) {
       ) {
         setCamera(motionRoute, motionRoute.length);
         signal("next");
+      }
+    }
+    if (state.phase === "station") {
+      travelTime += dt;
+      const duration = 6.2;
+      const distance = journeyDistance(
+        travelTime,
+        stationRoute.length,
+        duration,
+      );
+      if (!reduced.matches) setCamera(stationRoute, distance);
+      host.dataset.station = distance < 20 ? "approaching" : "platform";
+      if (reduced.matches ? phaseTime >= 1.5 : travelTime >= duration) {
+        setCamera(stationRoute, stationRoute.length);
+        signal("arrived");
       }
     }
     if (!document.hidden && (dirty || state.phase === "switching")) {
@@ -480,6 +652,8 @@ function createWorld(host, callbacks) {
       skylineGeometry.dispose();
       skylineMaterial.dispose();
       skylineTexture.dispose();
+      stationMaterial.dispose();
+      stationTexture.dispose();
       personMaterial.dispose();
       texture.dispose();
       renderer.dispose();
@@ -516,7 +690,11 @@ export default function RailwayScene({ run, onEvent, onReady, onError }) {
       ref={host}
       className="railway-canvas"
       role="img"
-      aria-label={`分岐 ${run.roundIndex + 1}：直進 ${SCENARIOS[run.roundIndex].left.people}人、支線 ${SCENARIOS[run.roundIndex].right.people}人。${["impact", "departing"].includes(run.phase) ? "選ばれた線路の人たちを通過しました。" : ""}`}
+      aria-label={
+        ["station", "arrived"].includes(run.phase)
+          ? "終点駅のホームに続く線路"
+          : `分岐 ${run.roundIndex + 1}：左に${SCENARIOS[run.roundIndex].left.label}、右に${SCENARIOS[run.roundIndex].right.label}。${["impact", "departing"].includes(run.phase) ? "助けると選んだ側と反対の人たちを通過しました。" : ""}`
+      }
     />
   );
 }

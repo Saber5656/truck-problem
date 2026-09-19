@@ -48,11 +48,20 @@ export function finishImpact(state) {
 export function advanceRound(state, totalRounds) {
   if (state.gameFinished || state.phase !== "departing") return state;
   if (state.roundIndex === totalRounds - 1)
-    return { ...state, gameFinished: true };
+    return { ...state, phase: "station" };
   return {
     ...state,
     roundIndex: state.roundIndex + 1,
     phase: "ready",
     answer: null,
   };
+}
+
+export function arriveAtStation(state) {
+  if (state.phase !== "station") return state;
+  return { ...state, phase: "arrived" };
+}
+export function finishRun(state) {
+  if (state.phase !== "arrived") return state;
+  return { ...state, gameFinished: true };
 }
