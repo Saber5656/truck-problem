@@ -1,5 +1,19 @@
 # Prototype Instructions
 
+## Secret files — do not read
+
+- `.env`, `.env.local`, and all `.env.*` files are private. Agents and delegated agents must not open, read, search inside, parse, source, copy, or display their contents. This includes editor/browser snapshots, screenshots, tool results, prompts, logs, and Vault records. Do not ask the user to paste a key into chat.
+- The only exception is the tracked `.env.example` template, which must contain empty credential values. Use that template to understand configuration names.
+- This rule applies equally to this checkout and the original Vault copy of the project. Do not use another copy or an indirect command to read a protected file.
+- The application may load its own credentials server-side through its existing runtime configuration. Agents may start/restart that runtime, but must not extract, log, or inspect the loaded values. This runtime permission does not authorize sourcing the project's env files into an agent shell.
+- To check setup, use only the local `/api/status` response (`configured` boolean). File existence/permissions and Git path metadata may be checked without opening secret files. Key presence is not authentication or credit-balance verification.
+- Before committing, confirm these paths are ignored and absent from the Git index using path-only checks. Never force-add them. If a secret path is already tracked, stop that commit and remove it from the index while preserving the user's local file; never inspect its content or include it in a diff. Report historical tracking without displaying any value.
+- Do not put credentials in `VITE_` variables or browser source/assets. Preserve the Git exclusions. Pass these restrictions explicitly in any delegated task.
+
+Git exclusions and these instructions do not constitute an operating-system access restriction; never claim that arbitrary tools are technically unable to read the files.
+
+## Local preview and design
+
 Run the local server yourself and open the preview in the browser available to this environment. Do not give the user server-start instructions when you can run it.
 
 Before making substantial visual changes, use the Product Design plugin's `get-context` skill when the visual source is unclear or no longer matches the current goal. When the user gives durable prototype-specific design feedback, preferences, or decisions, record them in `AGENTS.md`.

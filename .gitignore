@@ -1,9 +1,13 @@
 node_modules/
 dist/
+
+# Local credentials: never stage these, including with git add --force.
+# Only the empty, documented template may be committed.
 .env
 .env.*
 .env.local
 !.env.example
+
 *.log
 qa/
 .DS_Store
