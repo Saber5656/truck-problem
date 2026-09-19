@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import RailwayScene from "./RailwayScene.jsx";
 import { SCENARIOS, decisionOutcome } from "./scenarios.mjs";
-import { requestDecision } from "./game-api.mjs";
+import { createDecisionSession } from "./game-api.mjs";
 import {
   createRunState,
   beginRound,
@@ -32,7 +32,7 @@ function GroupCard({ option, tone, chosen }) {
       className={`choice-button choice-button--${tone} ${chosen ? "is-selected" : ""}`}
     >
       <span className="choice-button__eyebrow">
-        {chosen ? "JEV'S CHOICE / 助ける相手" : option.caption}
+        {chosen ? "JEV'S CHOICE / 犠牲にする相手" : option.caption}
       </span>
       <span className="choice-button__label">{option.label}</span>
       <span className="choice-button__detail">{option.detail}</span>
@@ -52,7 +52,7 @@ function ScoreRow({ label, values, keyName, tone }) {
   );
 }
 
-function App() {
+function App({ decisionProvider } = {}) {
   const [run, setRun] = useState(createRunState);
   const { roundIndex, phase, answer, history, gameFinished } = run;
   const [showHow, setShowHow] = useState(false);
@@ -61,7 +61,8 @@ function App() {
   const [error, setError] = useState("");
   const [sceneReady, setSceneReady] = useState(false);
   const [sceneError, setSceneError] = useState("");
-  const pending = useRef(false);
+  const decisions = useRef(createDecisionSession(decisionProvider));
+  const [attempt, setAttempt] = useState(0);
   const questionRef = useRef(null);
   const sceneRef = useRef(null);
   const previousScreen = useRef(`${roundIndex}:${gameFinished}`);
@@ -77,8 +78,8 @@ function App() {
   const outcome = answer && decisionOutcome(scenario, answer.choice);
   const consequence =
     outcome &&
-    `${outcome.saved.label}を助け、${outcome.sacrificed.label}が犠牲になりました`;
-  const jevChoiceLabel = outcome?.saved.label;
+    `${outcome.sacrificed.label}が犠牲になり、${outcome.saved.label}が助かりました`;
+  const jevChoiceLabel = outcome?.sacrificed.label;
   const atStation = phase === "station" || phase === "arrived";
 
   useEffect(() => {
@@ -110,22 +111,29 @@ function App() {
     };
   }, []);
 
-  const play = async () => {
-    if (phase !== "ready" || pending.current || !sceneReady || sceneError)
+  useEffect(() => {
+    if (phase !== "judging") return;
+    const session = decisions.current;
+    session.request(scenario, mode, attempt).then(
+      (result) => {
+        if (decisions.current === session)
+          setRun((current) => receiveDecision(current, result));
+      },
+      (failure) => {
+        if (decisions.current !== session) return;
+        setError(failure.message);
+        setRun(failRound);
+      },
+    );
+  }, [phase, scenario, mode, attempt]);
+
+  const play = () => {
+    if (!["ready", "error"].includes(phase) || !sceneReady || sceneError)
       return;
-    pending.current = true;
-    setRun(beginRound);
+    if (phase === "error") setAttempt((value) => value + 1);
     setError("");
+    setRun(beginRound);
     sceneRef.current?.scrollIntoView({ block: "center", behavior: "instant" });
-    try {
-      const result = await requestDecision(scenario, mode);
-      setRun((current) => receiveDecision(current, result));
-    } catch (error) {
-      setError(error.message);
-      setRun(failRound);
-    } finally {
-      pending.current = false;
-    }
   };
 
   const sceneEvent = (event) => {
@@ -141,6 +149,8 @@ function App() {
   };
 
   const restart = () => {
+    decisions.current = createDecisionSession(decisionProvider);
+    setAttempt(0);
     setRun(createRunState());
     setSceneReady(false);
     setSceneError("");
@@ -162,9 +172,9 @@ function App() {
             / 3
           </p>
           <h1 ref={questionRef} tabIndex={-1}>
-            Jevが助けた人。
+            Jevが犠牲にした人。
             <br />
-            犠牲になった人。
+            助かった人。
           </h1>
           <ol className="decision-history">
             {history.map(({ roundIndex: index, answer: decision }) => (
@@ -192,8 +202,8 @@ function App() {
                       .sacrificed.label
                   }
                   <br />
-                  助ける選択の確率 {decision.probabilities[decision.choice]}% ·
-                  確信度 {decision.confidence}%
+                  犠牲にする選択の確率 {decision.probabilities[decision.choice]}
+                  % · 確信度 {decision.confidence}%
                 </span>
               </li>
             ))}
@@ -220,11 +230,11 @@ function App() {
     (!sceneReady
       ? "運転席を準備しています…"
       : phase === "judging"
-        ? "Jevが助ける相手を判断しています…"
+        ? "Jevが犠牲にする相手を判断しています…"
         : phase === "switching"
-          ? `${jevChoiceLabel}を助ける — 分岐器を合わせています`
+          ? `${jevChoiceLabel}を犠牲にする — 分岐器を合わせています`
           : phase === "moving"
-            ? `${jevChoiceLabel}を助けるため、反対側へ走行中`
+            ? `${jevChoiceLabel}がいる線路へ走行中`
             : phase === "impact"
               ? consequence
               : phase === "departing"
@@ -233,7 +243,11 @@ function App() {
                   ? "3つの問いを終え、終点駅へ向かっています"
                   : phase === "arrived"
                     ? "終点に到着しました。3つの判断を振り返れます"
-                    : "プレイを押すと、Jevが助ける相手を選びます");
+                    : phase === "error"
+                      ? history.length
+                        ? "通信エラー。直線を走行しながら再試行を待っています"
+                        : "判定できませんでした。再試行できます"
+                      : "プレイ1回で、Jevが3問を判断して終点まで走ります");
 
   return (
     <main className="game-shell">
@@ -273,7 +287,7 @@ function App() {
               <p className="eyebrow eyebrow--cyan">
                 {atStation
                   ? "END OF THE LINE"
-                  : "どちらを助ける？ / WHO WILL JEV SAVE?"}
+                  : "どちらを犠牲にする？ / WHO WILL JEV SACRIFICE?"}
               </p>
               <h1 ref={questionRef} tabIndex={-1}>
                 {atStation
@@ -337,8 +351,10 @@ function App() {
               </button>
               <span className="playback-mode-note">
                 {mode === "demo"
-                  ? "デモ：架空の固定判定 / API通信なし"
-                  : "実API：プレイ1回につき1回判定・残高を使用"}
+                  ? "デモ：3問を自動判定 / 架空の固定値・API通信なし"
+                  : error || attempt > 0
+                    ? "実API：3問を自動判定・再試行分は追加で残高を使用"
+                    : "実API：開始すると3問を自動判定（最大3回・残高を使用）"}
               </span>
             </div>
             {error && (
@@ -378,7 +394,9 @@ function App() {
                 className={`route-sign route-sign--left ${answer?.choice === "left" ? "route-sign--chosen" : ""}`}
               >
                 <span>
-                  {answer?.choice === "left" ? "助ける相手" : "左側の人たち"}
+                  {answer?.choice === "left"
+                    ? "犠牲にする相手"
+                    : "左側の人たち"}
                 </span>
                 <strong>{scenario.left.label}</strong>
               </div>
@@ -386,7 +404,9 @@ function App() {
                 className={`route-sign route-sign--right ${answer?.choice === "right" ? "route-sign--chosen" : ""}`}
               >
                 <span>
-                  {answer?.choice === "right" ? "助ける相手" : "右側の人たち"}
+                  {answer?.choice === "right"
+                    ? "犠牲にする相手"
+                    : "右側の人たち"}
                 </span>
                 <strong>{scenario.right.label}</strong>
               </div>
@@ -408,7 +428,10 @@ function App() {
               )}
             </div>
             {!atStation && (
-              <div className="choice-dock" aria-label="Jevが助ける相手の2択">
+              <div
+                className="choice-dock"
+                aria-label="Jevが犠牲にする相手の2択"
+              >
                 <GroupCard
                   option={scenario.left}
                   tone="cyan"
@@ -423,7 +446,7 @@ function App() {
               </div>
             )}
             <p className="stage-note">
-              架空の思考実験です。助けると選んだ相手の、反対側へ進みます。3問の後は終点駅へ。
+              架空の思考実験です。選んだ側の人たちが犠牲になります。問の間は走り続け、終点駅で停車します。
             </p>
           </div>
         </div>
@@ -459,7 +482,7 @@ function App() {
             <p>
               {mode === "demo"
                 ? "質問は実APIモードと共通です。デモの判定・数値・投票は架空です。"
-                : "Jevは助ける相手を選びます。トロッコは反対側へ進みます。返された確率・確信度も表示します。"}
+                : "Jevは犠牲にする相手を選び、その人たちがいる線路へ進みます。返された確率・確信度も表示します。"}
             </p>
           </div>
           <div className="connection-controls">
@@ -477,7 +500,7 @@ function App() {
                 にキーを保存し、開発サーバーを再起動してください。
               </p>
               <p>
-                送信するのは問題文と選択肢だけです。プレイ時に1回判定します。次の問いは自動で送信しません。モードは1ゲーム中固定です。
+                送信するのは問題文と選択肢だけです。プレイ1回で最大3問を順に判定します。通信エラーの自動再送はせず、再試行を押した場合だけ追加で送信します。モードは1ゲーム中固定です。
               </p>
             </details>
           </div>
@@ -491,8 +514,8 @@ function App() {
                 <div className="section-heading">
                   <span>
                     {answer.source === "demo"
-                      ? "デモが助ける相手（固定値）"
-                      : "Jevが助ける相手（API応答）"}
+                      ? "デモが犠牲にする相手（固定値）"
+                      : "Jevが犠牲にする相手（API応答）"}
                   </span>
                   <span className="confidence-label">
                     確信度 {answer.confidence}%
@@ -517,17 +540,17 @@ function App() {
                 <p>
                   {answer.source === "demo"
                     ? "動作確認用の架空の値です。Jevには問い合わせていません。"
-                    : "TypeSafeから受け取った、助ける相手の選択・確率・確信度です。"}
+                    : "TypeSafeから受け取った、犠牲にする相手の選択・確率・確信度です。"}
                 </p>
                 <p>
-                  助ける相手を選ぶ確率です。生存確率や倫理的な正解率ではありません。
+                  犠牲にする相手を選ぶ確率です。生存確率や倫理的な正解率ではありません。
                 </p>
               </>
             ) : (
               <p>
                 {busy
                   ? "Jevの判断を待っています…"
-                  : "ゲームをプレイすると、ここにJevの判定が表示されます。"}
+                  : "プレイするとJevの判定を表示し、3問を続けて運行します。"}
               </p>
             )}
           </div>

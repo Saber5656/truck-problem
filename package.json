@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/game-logic.test.mjs tests/game-api.test.mjs tests/setup.test.mjs tests/decision.test.mjs tests/railway-motion.test.mjs tests/scenarios.test.mjs",
+    "test": "node --test tests/game-logic.test.mjs tests/game-api.test.mjs tests/setup.test.mjs tests/decision.test.mjs tests/railway-motion.test.mjs tests/scenarios.test.mjs tests/nonstop.test.mjs",
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",

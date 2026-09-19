@@ -9,7 +9,8 @@ export function createRunState() {
 }
 
 export function beginRound(state) {
-  if (state.gameFinished || state.phase !== "ready") return state;
+  if (state.gameFinished || !["ready", "error"].includes(state.phase))
+    return state;
   return { ...state, phase: "judging" };
 }
 
@@ -20,7 +21,7 @@ export function receiveDecision(state, answer) {
 
 export function failRound(state) {
   if (state.phase !== "judging") return state;
-  return { ...state, phase: "ready" };
+  return { ...state, phase: "error" };
 }
 
 export function finishSwitch(state) {
@@ -52,7 +53,7 @@ export function advanceRound(state, totalRounds) {
   return {
     ...state,
     roundIndex: state.roundIndex + 1,
-    phase: "ready",
+    phase: "judging",
     answer: null,
   };
 }

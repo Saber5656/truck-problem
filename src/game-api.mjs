@@ -48,3 +48,20 @@ export async function requestDecision(
     throw new Error("判定結果の形式を確認できませんでした。");
   return result;
 }
+
+// The explicit Play authorizes this session; rendering the same question twice
+// cannot charge twice. Failed requests are cached until a manual retry attempt.
+export function createDecisionSession(request = requestDecision) {
+  const requests = new Map();
+  return {
+    request(scenario, mode, attempt = 0) {
+      const key = `${scenario.id}:${mode}:${attempt}`;
+      if (!requests.has(key))
+        requests.set(
+          key,
+          Promise.resolve().then(() => request(scenario, mode)),
+        );
+      return requests.get(key);
+    },
+  };
+}

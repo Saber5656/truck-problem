@@ -59,7 +59,7 @@ test("double Play, duplicate responses and duplicate arrival never repeat a roun
   assert.equal(beginRound(arrived), arrived);
 });
 
-test("next round is unavailable until the trolley arrives; advancing requires another explicit Play", () => {
+test("next round is unavailable until the trolley arrives; advancing automatically judges the next question", () => {
   for (const state of [
     createRunState(),
     beginRound(createRunState()),
@@ -76,14 +76,15 @@ test("next round is unavailable until the trolley arrives; advancing requires an
     3,
   );
   assert.equal(next.roundIndex, 1);
-  assert.equal(next.phase, "ready");
+  assert.equal(next.phase, "judging");
   assert.equal(next.answer, null);
 });
 
-test("failure restores a retryable ready state without movement, fabricated answer or history", () => {
+test("failure enters an explicit retryable error without a fabricated answer or new history", () => {
   const initial = createRunState();
   const failed = failRound(beginRound(initial));
-  assert.deepEqual(failed, initial);
+  assert.equal(failed.phase, "error");
+  assert.equal(beginRound(failed).phase, "judging");
   assert.equal(receiveDecision(initial, answer), initial);
   assert.equal(finishMotion(initial), initial);
 });
@@ -94,7 +95,7 @@ test("three arrivals finish the run once; replay clears every decision", () => {
     state = finishImpact(
       finishMotion(
         finishSwitch(
-          receiveDecision(beginRound(state), {
+          receiveDecision(round === 0 ? beginRound(state) : state, {
             ...answer,
             choice: round === 1 ? "left" : "right",
           }),

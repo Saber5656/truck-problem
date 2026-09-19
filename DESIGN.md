@@ -66,3 +66,11 @@ Question directions: future contribution versus headcount (scientist 1 / NEETs 5
 Choice contract is now left/right = group to SAVE. The physical travel route is the opposite group's track, derived by one shared helper and covered by tests. Every result names both the saved and sacrificed groups. Probability labels describe the choice of whom to save, never the probability of survival or moral correctness.
 
 Station visual: a generated navy/brass facade with warm windows, cyan/red accents, clock, 終点 / TERMINUS signage, used as a building surface in the 3D world. Functional platform/roof/track geometry gives depth during approach. Use the established skyline and cockpit. Clear idle/loading/error, disabled Play during travel, and responsive labels remain. Source is the existing selected mock plus current cockpit screenshot; this is a scoped extension, not a new visual direction.
+
+## 2026-09-20: choose the casualty and keep rolling (current)
+
+User correction supersedes the previous rescue-choice and per-round Play design. Keep the selected cockpit and neon layout. Each left/right choice now names the group to hit; the same-side track is selected and the opposite group survives. One Play starts all three decisions. Show the next question after impact while continuing along the rejoining track and a longer straight. Never brake at question boundaries. Only the terminal station decelerates to zero.
+
+Separate question state from physical train position. Use one distance/speed simulation for the complete run: initial acceleration, constant cruise across round boundaries, final station braking. Pending/failed replies extend the straight before the next junction; the train keeps moving and no unchosen route is entered. API errors remain explicit with manual retry, never fabricated decisions or automatic resends. Initial demo remains free of API calls; live Play clearly authorizes up to three sequential decisions, one per question. First-round errors occur before departure. No new assets or visual direction are needed.
+
+Verification: direct casualty mapping, single-start automatic sequence, positive speed at question boundaries and during delayed/error responses, smooth connected track extensions, continuous station-entry velocity, final zero speed, visible console/error/retry states, full desktop and narrow browser run.

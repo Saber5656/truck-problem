@@ -960,7 +960,7 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .driver-scene .impact-curtain { transition: none; opacity: 0; }
 }
 
-/* Group labels are choices about rescue, independent of the physical route. */
+/* Group labels name the selected casualties and match the physical route. */
 .driver-scene .route-sign { max-width: 30%; }
 .driver-scene .route-sign strong { font-size: clamp(.75rem,1.25vw,1.15rem); line-height: 1.4; }
 .driver-scene--station .route-sign, .driver-scene--arrived .route-sign { display: none; }

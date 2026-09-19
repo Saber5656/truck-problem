@@ -7,6 +7,7 @@ import {
   journeyDistance,
   switchBladePoint,
   TILE_LENGTH,
+  JUNCTION_LENGTH,
   START_Z,
   PEOPLE_Z,
   END_Z,
@@ -79,8 +80,14 @@ test("both branches rejoin one trunk with no open ends between dilemmas", () => 
     const stay = makeRoute("stay", origin),
       branch = makeRoute("switch", origin);
     assert.deepEqual(
-      sampleRoute(stay, stay.length),
-      sampleRoute(branch, branch.length),
+      sampleRoute(stay, stay.length).position,
+      sampleRoute(branch, branch.length).position,
+    );
+    assert.ok(
+      Math.abs(
+        sampleRoute(stay, stay.length).tangent.z -
+          sampleRoute(branch, branch.length).tangent.z,
+      ) < 1e-9,
     );
     assert.equal(centerAtZ("switch", END_Z).x, 0);
     assert.equal(nextOrigin(origin, "stay").x, nextOrigin(origin, "switch").x);
@@ -88,7 +95,7 @@ test("both branches rejoin one trunk with no open ends between dilemmas", () => 
 });
 test("the last trunk connects to a station path that stops short of its buffer", () => {
   const origin = { x: 0, z: -2 * TILE_LENGTH };
-  const rail = makeRoute("switch", origin),
+  const rail = makeRoute("switch", origin, JUNCTION_LENGTH),
     station = makeStationRoute(3);
   assert.deepEqual(
     sampleRoute(rail, rail.length).position,

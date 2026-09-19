@@ -173,7 +173,7 @@ Final result: pass for local demo. Actual TypeSafe API remains unverified.
 
 生成した3D用背景: `public/assets/railway-skyline.png` 1942×809。線路・車両・人物なし、下側は低詳細の濃紺霧。built-in image_gen、全プロンプトは `qa/skyline-generation.md` とVaultに保存。既存の素材を削除していない。
 
-## 2026-09-19 — 途切れない線路・終点駅・助ける相手の問い（最新）
+## 2026-09-19 — 途切れない線路・終点駅・助ける相手の問い（過去。後節で選択と走行を更新）
 
 Final result: pass for local demo. Actual TypeSafe API remains unverified.
 
@@ -222,3 +222,47 @@ Chrome / http://127.0.0.1:5173/ で確認。
 - 公開・push・デプロイなし。
 
 生成素材: `public/assets/terminal-station.png`（1774×887、実透過、built-in image_gen）。全プロンプト・出力情報は `qa/terminal-station-generation.md` とVaultに保存。
+
+
+## 2026-09-20 — 犠牲になる側の選択・終点までの連続運行（最新）
+
+Final result: passed for local demo and simulated delayed/error responses. Actual TypeSafe API remains unverified.
+
+### 要求・選定・実装
+
+ユーザーの訂正: 選ぶのは助けない方（轢く方）。質問の間には停止せず、全問終了後の駅だけで停止。応答時間は合流から次の分岐までの距離で確保する。Product Design 0.1.55 image-to-codeを継続適用、user-context preflight成功。選定済みネオン画面と運転席の構成を維持し、DESIGN.mdに変更方針を記録して実装した。新規画像なし。
+
+- choice left/rightは選んだ犠牲側。left→本線、right→支線。同じ側へ走り、反対側が助かる。質問・2択・APIのhit質問・結果文・確率の説明を揃えた。
+- Play1回で3問を連続判定する。初期デモ。実API選択だけでは開始しない。開始前に通常最大3回の呼出を明記し、再試行分の追加利用も表示する。
+- 物理位置と現在の問いを分離。発車時のみ加速し、その後10m/sを保って問/線路の境界を通過。最後の駅に10m/sで入り、連続的に減速して0にする。
+- 最初の2区間を256m、最後の分岐を96mにし、合流後に長い直線を追加。衝突後の結果表示を経て、走行中に次の問いを依頼する。返答未確定なら視界外で直線を160mずつ延長。通過済みの延長描画を解放する。
+- 通信エラーは明示し、直線を走り続ける。自動再送・架空の代替回答・未決定の分岐への侵入なし。手動再試行は1回だけ依頼。同じ描画からの重複依頼はセッションで抑止。
+
+### 視覚QA
+
+`design-reference.png`（1487×1058）と `qa/nonstop-09-final-ready.png`（1487×1024）を同じ入力で開き目視比較。既に合意した一人称への置換と今回の選択文言を優先し、参考画像の外観車両・進路ボタン・架空の理由文は復元しない。
+
+- Typography: 問い、人物群、補足の階層を保持。長い問いと犠牲/救助の説明は320pxでも欠けずに折り返す。
+- Spacing/layout: 左に問い/Play/運転席/2択、右にJevパネル。狭幅では縦配置。390px・320pxのscrollWidthはviewport幅と一致。
+- Color/image: navy/cyan/red、goldの可動部、既存の風景・人物・手元・駅を維持。連続線路と待機中に延長した直線で、途切れ・瞬間移動・画面内の分岐の移設は観測しない。
+- Copy: 犠牲にする選択と救助された相手を区別。3問自動進行・実APIの呼出回数・エラー時の再試行を表示。デモ/投票の架空表示と倫理的正解率ではない説明を保持。
+- 視覚P0/P1/P2なし。P3: デスクトップの第1問説明の末尾が短い2行目に折り返す。意味や操作を妨げず、今回の範囲では保持。
+
+### ブラウザの実操作・証拠
+
+Chrome / http://127.0.0.1:5173/ で、Playを1回だけ押して科学者1名→見知らぬ4名→事故を起こした5名を犠牲にする3問、駅への進入、停車、結果を確認。第2問の分岐進入はdistance=262.486m、speed=10.000m/s。駅進入中2.343m/s→到着後0.000m/s。「結果を見る」は到着後に出る。再プレイでdemo/第1問/readyへ戻り、Play有効。
+
+実APIモードの選択だけではreadyを維持し、「開始すると3問を自動判定（最大3回・残高を使用）」を表示。Playは押さずデモへ戻した。
+
+別のローカル検証ページ `qa/nonstop-fixture.html` で2問目に11秒の遅延と通信失敗を注入。外部APIは使わない。error時にdistance=303.007m、physicalJunction=1、question=2、speed=10.000m/s、延長線路を観測。その後478.162mでも10.000m/s。390pxで再試行→走行を継続→第3問→移設された駅に進入→0.000m/sで停車→3問の履歴を確認。検証ページはqa内のみ、Git/配信物に含めない。検証タブを閉じ、通常ゲームの初期画面を保持した。
+
+証拠: `qa/nonstop-01-ready.png`、`nonstop-02-second-question.png`、`nonstop-03-third-or-station.png`（実際は駅へ減速中）、`nonstop-04-results.png`、`nonstop-05-error-cruising.png`、`nonstop-06-retry-mobile.png`、`nonstop-07-recovered-next-question.png`（実際は再試行後の駅進入）、`nonstop-08-320-ready.png`、`nonstop-09-final-ready.png`。console warn/errorは通常/模擬ページの取得範囲で0件。viewportを解除してデモ初期画面を引き渡し。
+
+### TDD・レビュー・制限
+
+- 先に選択の逆転、次問judging、自動依頼の重複抑止、連続速度、待機線路延長、駅への速度連続性のテストを失敗させてから実装。36単体テスト、4配信形式テスト、本番ビルド成功。
+- 主担当が自己レビュー。選択とAPI契約、距離と接線の接続、初速/終速、遅延時の進路保護、重複/再試行/再プレイ、描画資源解放を確認。再試行後も「最大3回」のみを表示していた点を、追加利用の説明へ修正。浮動小数点の接線差は1e-9以内で検証し、位置の一致は厳密検証を維持。
+- Claude sonnet/lowへ独立した選択/API部分を委譲したが、run `20260919T152051-0aa11af0d775` はauth_errorで未実行。actual_model=claude-sonnet-5、input/cache=0、output未報告。上限ではなく認証問題として扱い、主担当で続行。Claude独立レビューも未実施。
+- 秘密env内容は未読。空.env.example以外はGit追跡なし。架空sentinelでビルドし、12配信ファイルにsentinel・TypeSafe呼出先・env・模擬ページがないことを検査。実API認証/残高/実応答は未検証、今回外部判定は0回。
+- JS764.40kB/gzip206.59kB、既存の500kB警告あり。reduced-motionは静止したカメラ表示、背景タブはシミュレーション時間を止める既存の配慮を維持。物理スマホ/OS reduced-motion切替の実機確認は未実施。
+- 公開/push/デプロイなし。

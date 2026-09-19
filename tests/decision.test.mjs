@@ -7,7 +7,7 @@ const SECRET = "test-only-not-a-real-key";
 const result = {
   model: "jev-test",
   answers: {
-    save: {
+    hit: {
       type: "choice",
       choice: "right",
       probabilities: { left: 0.08, right: 0.92 },
@@ -93,8 +93,8 @@ test("only the official endpoint receives the key and the fixed scenario", async
       assert.equal(options.redirect, "error");
       const payload = JSON.parse(options.body);
       assert.equal(payload.model, "jev-latest");
-      assert.equal(payload.questions.save.type, "choice");
-      assert.deepEqual(Object.keys(payload.questions.save.criteria), [
+      assert.equal(payload.questions.hit.type, "choice");
+      assert.deepEqual(Object.keys(payload.questions.hit.criteria), [
         "left",
         "right",
       ]);
@@ -161,17 +161,17 @@ test("errors are sanitized and do not trigger automatic retries", async () => {
 test("invalid model responses are rejected", async () => {
   for (const answer of [
     {},
-    { ...result.answers.save, choice: "fly" },
-    { ...result.answers.save, probabilities: { left: 8, right: 92 } },
-    { ...result.answers.save, confidence: -1 },
-    { ...result.answers.save, probabilities: { left: 0.8, right: 0.2 } },
+    { ...result.answers.hit, choice: "fly" },
+    { ...result.answers.hit, probabilities: { left: 8, right: 92 } },
+    { ...result.answers.hit, confidence: -1 },
+    { ...result.answers.hit, probabilities: { left: 0.8, right: 0.2 } },
   ]) {
     const response = await invoke(
       createDecisionMiddleware({
         apiKey: SECRET,
         fetchImpl: async () => ({
           ok: true,
-          json: async () => ({ answers: { save: answer } }),
+          json: async () => ({ answers: { hit: answer } }),
         }),
       }),
     );
@@ -181,7 +181,7 @@ test("invalid model responses are rejected", async () => {
 
 test("display probabilities still total 100 at a rounding boundary", async () => {
   const answer = {
-    ...result.answers.save,
+    ...result.answers.hit,
     probabilities: { left: 0.495, right: 0.505 },
   };
   const response = await invoke(
@@ -189,7 +189,7 @@ test("display probabilities still total 100 at a rounding boundary", async () =>
       apiKey: SECRET,
       fetchImpl: async () => ({
         ok: true,
-        json: async () => ({ answers: { save: answer } }),
+        json: async () => ({ answers: { hit: answer } }),
       }),
     }),
   );

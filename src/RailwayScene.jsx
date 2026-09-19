@@ -1,17 +1,17 @@
 import { useEffect, useRef } from "react";
 import * as THREE from "three";
+import { RailwayJourney } from "./railway-journey.mjs";
 import { SCENARIOS, decisionOutcome } from "./scenarios.mjs";
 import {
   GAUGE,
   START_Z,
   END_Z,
   TILE_LENGTH,
-  makeStationRoute,
+  JUNCTION_LENGTH,
   PEOPLE_Z,
   centerAtZ,
   makeRoute,
   sampleRoute,
-  journeyDistance,
   switchBladePoint,
   smooth,
 } from "./railway-motion.mjs";
@@ -139,12 +139,13 @@ function createWorld(host, callbacks) {
     currentIndex = -1;
   let phaseKey = "",
     phaseTime = 0,
-    travelTime = 0,
-    fired = false,
-    motionRoute;
+    fired = false;
   let frame = 0,
     previous = 0,
     latestState;
+  let lastDistance = -1;
+  const journey = new RailwayJourney(SCENARIOS.length);
+  const extensions = [];
   const tiles = [],
     resources = new Set();
   const remember = (g) => {
@@ -212,7 +213,12 @@ function createWorld(host, callbacks) {
       blades = [];
     for (const choice of ["stay", "switch"]) {
       const start = choice === "stay" ? START_Z : -4;
-      const end = choice === "stay" ? END_Z : -80;
+      const end =
+        choice === "stay"
+          ? index === SCENARIOS.length - 1
+            ? START_Z - JUNCTION_LENGTH
+            : END_Z
+          : -80;
       const bed = new THREE.Mesh(
         remember(
           ribbon(
@@ -234,7 +240,11 @@ function createWorld(host, callbacks) {
             materials.rail,
           ),
         );
-      const route = makeRoute(choice);
+      const route = makeRoute(
+        choice,
+        { x: 0, z: 0 },
+        index === SCENARIOS.length - 1 ? JUNCTION_LENGTH : TILE_LENGTH,
+      );
       const sleepers = [];
       for (let d = 0; d < route.length; d += 0.75) {
         const p = sampleRoute(route, d);
@@ -323,8 +333,8 @@ function createWorld(host, callbacks) {
   }
   // Every rail exists from the first frame. Both branches rejoin the next trunk.
   for (let index = 0; index < SCENARIOS.length; index++)
-    addTile(index, { x: 0, z: -TILE_LENGTH * index });
-  const stationRoute = makeStationRoute(SCENARIOS.length);
+    addTile(index, journey.origins[index]);
+  const stationRoute = journey.stationRoute;
   const stationGroup = new THREE.Group();
   scene.add(stationGroup);
   const stationStart = stationRoute.points[0].z,
@@ -451,6 +461,50 @@ function createWorld(host, callbacks) {
   facade.position.set(0, 6.9, stationEnd - 14);
   stationGroup.add(facade);
 
+  function extendTrack({ afterIndex, fromZ, toZ, amount }) {
+    for (let i = afterIndex + 1; i < tiles.length; i++)
+      tiles[i].group.position.z = journey.origins[i].z;
+    stationGroup.position.z -= amount;
+    const group = new THREE.Group();
+    const straight = (offset) => [
+      { x: offset, z: fromZ },
+      { x: offset, z: toZ },
+    ];
+    group.add(
+      new THREE.Mesh(
+        remember(ribbon(straight(0), 3.1, 0.18, -0.18)),
+        materials.ballast,
+      ),
+    );
+    for (const side of [-1, 1])
+      group.add(
+        new THREE.Mesh(
+          remember(ribbon(straight((side * GAUGE) / 2), 0.11)),
+          materials.rail,
+        ),
+      );
+    group.add(
+      new THREE.Mesh(
+        remember(ribbon(straight(-1.4), 0.05, 0.025, 0.045)),
+        materials.cyan,
+      ),
+    );
+    const ties = new THREE.InstancedMesh(
+      sleeperGeometry,
+      materials.wood,
+      Math.ceil(amount / 0.75),
+    );
+    const pose = new THREE.Object3D();
+    for (let i = 0; i < ties.count; i++) {
+      pose.position.set(0, 0.015, fromZ - i * 0.75);
+      pose.updateMatrix();
+      ties.setMatrixAt(i, pose.matrix);
+    }
+    group.add(ties);
+    scene.add(group);
+    extensions.push({ group, endZ: toZ });
+    dirty = true;
+  }
   function align(tile, value) {
     if (Math.abs(tile.alignment - value) < 0.0001) return;
     tile.alignment = value;
@@ -463,8 +517,7 @@ function createWorld(host, callbacks) {
     }
     tile.bar.position.x = value * 0.28;
   }
-  function setCamera(route, distance) {
-    const { position, tangent } = sampleRoute(route, distance);
+  function setCamera({ position, tangent }) {
     camera.position.set(position.x, 2.45, position.z);
     skyline.position.set(position.x, -16.2, position.z);
     dirty = true;
@@ -506,8 +559,8 @@ function createWorld(host, callbacks) {
     if (state.roundIndex !== currentIndex) {
       currentIndex = state.roundIndex;
       activeTile = tiles[currentIndex];
-      motionRoute = makeRoute("stay", activeTile.origin);
-      setCamera(motionRoute, 0);
+      for (const group of Object.values(activeTile.people))
+        group.visible = true;
       host.dataset.junction = String(currentIndex + 1);
     }
     const key = `${state.roundIndex}:${state.phase}`;
@@ -517,32 +570,18 @@ function createWorld(host, callbacks) {
       fired = false;
       dirty = true;
       if (state.phase === "moving") {
-        travelTime = 0;
-        motionRoute = makeRoute(
+        journey.lock(
+          currentIndex,
           decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route,
-          activeTile.origin,
         );
+        journey.start();
       }
       if (state.phase === "impact")
         activeTile.people[
           decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route
         ].visible = false;
-      if (state.phase === "departing" && currentIndex < SCENARIOS.length - 1) {
-        for (const group of Object.values(tiles[currentIndex + 1].people))
-          group.visible = true;
-        host.dataset.nextJunction = "visible";
-      }
-      if (state.phase === "station") {
-        motionRoute = stationRoute;
-        travelTime = 0;
-        host.dataset.station = "approaching";
-      }
       if (state.phase === "arrived") host.dataset.station = "arrived";
-      if (state.phase === "ready") {
-        host.dataset.nextJunction = "hidden";
-        host.dataset.travel = "stopped";
-        host.dataset.points = "unlocked";
-      }
+      if (state.phase === "ready") host.dataset.points = "unlocked";
     }
     phaseTime += dt;
     if (state.phase === "switching") {
@@ -562,59 +601,67 @@ function createWorld(host, callbacks) {
           : decisionOutcome(SCENARIOS[currentIndex], state.answer.choice).route;
       if (phaseTime >= 1.3) signal("switch");
     }
-    if (["moving", "impact", "departing"].includes(state.phase)) {
-      travelTime += dt;
-      const duration = 10.8;
-      const distance = journeyDistance(
-        travelTime,
-        motionRoute.length,
-        duration,
-      );
-      const localZ =
-        sampleRoute(motionRoute, distance).position.z - activeTile.origin.z;
-      host.dataset.travel =
-        localZ > -4
-          ? "approach-points"
-          : localZ > -36
-            ? localZ > -20
+    const motion = journey.step(dt);
+    if (motion.extension) extendTrack(motion.extension);
+    host.dataset.speed = motion.speed.toFixed(3);
+    host.dataset.distance = motion.totalDistance.toFixed(3);
+    host.dataset.physicalJunction = String(motion.physicalIndex + 1);
+    host.dataset.waitingTrack = String(extensions.length);
+    const localZ = motion.position.z - journey.origins[motion.physicalIndex].z;
+    host.dataset.travel = !journey.started
+      ? "stopped"
+      : motion.station
+        ? "station"
+        : motion.physicalIndex < currentIndex
+          ? "between-questions"
+          : localZ > -4
+            ? "approach-points"
+            : localZ > -36
               ? "curve"
-              : "curve-exit"
-            : localZ > PEOPLE_Z
-              ? "approach-people"
-              : localZ > -65
-                ? "rejoining"
-                : "next-junction";
-      if (!reduced.matches) setCamera(motionRoute, distance);
-      if (
-        state.phase === "moving" &&
-        (reduced.matches
-          ? phaseTime >= 0.7
-          : distance >= motionRoute.impactDistance)
-      )
-        signal("impact");
-      if (state.phase === "impact" && phaseTime >= 0.55) signal("consequence");
-      if (
-        state.phase === "departing" &&
-        (reduced.matches ? phaseTime >= 1.7 : travelTime >= duration)
-      ) {
-        setCamera(motionRoute, motionRoute.length);
-        signal("next");
+              : localZ > PEOPLE_Z
+                ? "approach-people"
+                : localZ > -80
+                  ? "rejoining"
+                  : "connecting-straight";
+    // Reduced-motion viewers get stable views at each event, with the same
+    // logical journey and timing. It never changes requests or skips a question.
+    if (dirty || (!reduced.matches && motion.totalDistance !== lastDistance))
+      setCamera(motion);
+    lastDistance = motion.totalDistance;
+    for (let i = extensions.length - 1; i >= 0; i--) {
+      const old = extensions[i];
+      if (old.endZ > motion.position.z + 25) {
+        scene.remove(old.group);
+        old.group.traverse((object) => {
+          if (object.isInstancedMesh) object.dispose();
+          if (object.geometry && object.geometry !== sleeperGeometry) {
+            resources.delete(object.geometry);
+            object.geometry.dispose();
+          }
+        });
+        extensions.splice(i, 1);
       }
     }
+    if (
+      state.phase === "moving" &&
+      motion.physicalIndex === currentIndex &&
+      journey.distance >= journey.routes[currentIndex].impactDistance
+    )
+      signal("impact");
+    if (state.phase === "impact" && phaseTime >= 0.55) signal("consequence");
+    if (state.phase === "departing") {
+      if (currentIndex < SCENARIOS.length - 1 && phaseTime >= 1.7)
+        signal("next");
+      else if (currentIndex === SCENARIOS.length - 1 && motion.station)
+        signal("next");
+    }
     if (state.phase === "station") {
-      travelTime += dt;
-      const duration = 6.2;
-      const distance = journeyDistance(
-        travelTime,
-        stationRoute.length,
-        duration,
-      );
-      if (!reduced.matches) setCamera(stationRoute, distance);
-      host.dataset.station = distance < 20 ? "approaching" : "platform";
-      if (reduced.matches ? phaseTime >= 1.5 : travelTime >= duration) {
-        setCamera(stationRoute, stationRoute.length);
-        signal("arrived");
-      }
+      host.dataset.station = motion.arrived
+        ? "arrived"
+        : journey.distance < 20
+          ? "approaching"
+          : "platform";
+      if (motion.arrived) signal("arrived");
     }
     if (!document.hidden && (dirty || state.phase === "switching")) {
       renderer.render(scene, camera);
@@ -693,7 +740,7 @@ export default function RailwayScene({ run, onEvent, onReady, onError }) {
       aria-label={
         ["station", "arrived"].includes(run.phase)
           ? "終点駅のホームに続く線路"
-          : `分岐 ${run.roundIndex + 1}：左に${SCENARIOS[run.roundIndex].left.label}、右に${SCENARIOS[run.roundIndex].right.label}。${["impact", "departing"].includes(run.phase) ? "助けると選んだ側と反対の人たちを通過しました。" : ""}`
+          : `分岐 ${run.roundIndex + 1}：左に${SCENARIOS[run.roundIndex].left.label}、右に${SCENARIOS[run.roundIndex].right.label}。${["impact", "departing"].includes(run.phase) ? "犠牲にすると選んだ側の人たちを通過しました。" : ""}`
       }
     />
   );

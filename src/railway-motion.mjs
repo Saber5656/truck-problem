@@ -1,6 +1,7 @@
 // All coordinates are metres. The camera and both rail meshes share this path.
 export const START_Z = 8;
-export const TILE_LENGTH = 96;
+export const JUNCTION_LENGTH = 96;
+export const TILE_LENGTH = 256;
 export const END_Z = START_Z - TILE_LENGTH;
 export const PEOPLE_Z = -42;
 export const GAUGE = 1.6;
@@ -21,12 +22,16 @@ export function nextOrigin(origin, choice) {
     z: origin.z - TILE_LENGTH,
   };
 }
-export function makeRoute(choice, origin = { x: 0, z: 0 }) {
+export function makeRoute(
+  choice,
+  origin = { x: 0, z: 0 },
+  trackLength = TILE_LENGTH,
+) {
   const points = [];
   let length = 0,
     impactDistance = 0;
   // 0.1 metre steps put the impact plane exactly on the table at z=-41.
-  for (let i = 0; i <= TILE_LENGTH * 10; i++) {
+  for (let i = 0; i <= trackLength * 10; i++) {
     const local = centerAtZ(choice, START_Z - i / 10);
     const position = { x: local.x + origin.x, z: local.z + origin.z };
     if (i)
@@ -75,7 +80,7 @@ export function switchBladePoint(side, fraction, alignment) {
 }
 
 export function makeStationRoute(rounds) {
-  const startZ = START_Z - TILE_LENGTH * rounds;
+  const startZ = START_Z - TILE_LENGTH * (rounds - 1) - JUNCTION_LENGTH;
   const length = 48;
   return {
     points: [

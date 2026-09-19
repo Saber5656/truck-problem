@@ -4,20 +4,20 @@ import { SCENARIOS, decisionOutcome } from "../src/scenarios.mjs";
 import { requestDecision } from "../src/game-api.mjs";
 import { decisionQuestion } from "../server/decision.mjs";
 
-test("saving either group routes the trolley to the opposite group", () => {
+test("choosing either group hits that group and saves the opposite group", () => {
   for (const scenario of SCENARIOS) {
     const left = decisionOutcome(scenario, "left");
-    assert.equal(left.saved, scenario.left);
-    assert.equal(left.sacrificed, scenario.right);
-    assert.equal(left.route, "switch");
+    assert.equal(left.saved, scenario.right);
+    assert.equal(left.sacrificed, scenario.left);
+    assert.equal(left.route, "stay");
     const right = decisionOutcome(scenario, "right");
-    assert.equal(right.saved, scenario.right);
-    assert.equal(right.sacrificed, scenario.left);
-    assert.equal(right.route, "stay");
+    assert.equal(right.saved, scenario.left);
+    assert.equal(right.sacrificed, scenario.right);
+    assert.equal(right.route, "switch");
   }
   assert.throws(() => decisionOutcome(SCENARIOS[0], "stay"));
 });
-test("demo and API use identical real dilemma text; API explicitly chooses whom to save", async () => {
+test("demo and API use identical real dilemma text; API explicitly chooses whom to hit", async () => {
   for (const scenario of SCENARIOS) {
     const payload = decisionQuestion(scenario);
     assert.equal(payload.state.title, scenario.title);
@@ -25,13 +25,13 @@ test("demo and API use identical real dilemma text; API explicitly chooses whom 
     for (const choice of ["left", "right"]) {
       const outcome = decisionOutcome(scenario, choice);
       assert.ok(
-        payload.questions.save.criteria[choice].includes(
+        payload.questions.hit.criteria[choice].includes(
           outcome.saved.label + "を助ける",
         ),
       );
       assert.ok(
-        payload.questions.save.criteria[choice].includes(
-          outcome.sacrificed.label + "が犠牲",
+        payload.questions.hit.criteria[choice].includes(
+          outcome.sacrificed.label + "を犠牲にする",
         ),
       );
       assert.doesNotMatch(scenario[choice].label, /このまま|切り替|進路/);

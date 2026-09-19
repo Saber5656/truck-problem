@@ -32,10 +32,12 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Start in demo mode, clearly label fabricated poll/demo data, and do not silently fall back to demo after an API failure. Key presence is not proof of successful authentication or credit balance.
 
 - Canonical product checkout is `~/dev/jev-trolley-game`, separate from both Vaults. Keep the original source intact. Vault is for context and references only.
-- Keep trolley playback visible on narrow screens. Announce the consequence, then reveal the next connected junction and question automatically. Do not add a Next button. Each new Jev answer requires explicit Play; do not auto-call the API. New questions and replay return focus to the heading.
+- Keep trolley playback visible on narrow screens. Announce the consequence, then reveal the next connected junction and question automatically. Do not add a Next button. One explicit Play starts all three sequential decisions; disclose at most three API calls before live Play. Never auto-retry a failed request. New questions and replay return focus to the heading.
 - People are placed on the forward tracks using each scenario's actual group counts. Show approach, a brief non-graphic impact transition, then the consequence. Keep the cockpit fixed while the world approaches.
 
 - Use the same 3D rail centerline for cockpit motion and rail meshes. Animate the movable point blades after the answer and before departure. Never restore CSS background zoom/sideways translation as train movement (user correction 2026-09-19).
 
-- Questions and choices must ask whom to SAVE, using group names and ethically conflicting fictional premises. Demo and API share identical production scenario text. Choice left/right names the saved group; travel goes to the opposite track. Display both saved and sacrificed groups.
-- All rails exist before departure and reconnect after each group; no visible dangling track ends. After the last dilemma, travel to the terminus, stop at the platform, then allow the result screen (2026-09-19).
+- Questions and choices must ask whom to HIT / SACRIFICE, using group names and ethically conflicting fictional premises. Demo and API share identical production scenario text. Choice left/right names the casualty group; travel goes to that same track. Display both sacrificed and saved groups (user correction 2026-09-20).
+- The planned rails exist before departure and reconnect after each group. Add waiting-track extensions before they enter view; never show dangling track ends. After the last dilemma, travel to the terminus, stop at the platform, then allow the result screen (2026-09-19).
+
+- After departure, never stop between questions. Reveal/request the next question after impact while cruising along a longer straight. Extend the straight if its reply is pending or failed; do not enter an undecided fork. Preserve nonzero speed at question/track boundaries and brake only at the final platform. Initial errors before departure and hidden-tab/reduced-motion accessibility behavior are distinct from intermediate stops.

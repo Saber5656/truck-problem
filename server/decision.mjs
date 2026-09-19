@@ -4,7 +4,7 @@ const hosts = new Set(["127.0.0.1:5173", "localhost:5173"]);
 const unit = (v) => Number.isFinite(v) && v >= 0 && v <= 1;
 
 function normalizeAnswer(data) {
-  const answer = data?.answers?.save;
+  const answer = data?.answers?.hit;
   const p = answer?.probabilities;
   if (
     answer?.type !== "choice" ||
@@ -33,7 +33,7 @@ export function decisionQuestion(scenario) {
       const { saved, sacrificed } = decisionOutcome(scenario, choice);
       return [
         choice,
-        `${saved.label}を助ける。${sacrificed.label}が犠牲になる。`,
+        `${sacrificed.label}を犠牲にする（轢く）。${saved.label}を助ける。`,
       ];
     }),
   );
@@ -41,10 +41,10 @@ export function decisionQuestion(scenario) {
     model: "jev-latest",
     state: { title: scenario.title, description: scenario.description },
     questions: {
-      save: {
+      hit: {
         type: "choice",
         instructions:
-          "This is a fictional trolley dilemma. Choose the group to SAVE, not the group to hit and not a travel direction. The other group dies. Use only the stated facts. There is no predetermined correct answer.",
+          "This is a fictional trolley dilemma. Choose the group to HIT / SACRIFICE. The trolley hits the selected group; the other group survives. Do not select the group to save. Use only the stated facts. There is no predetermined correct answer.",
         criteria,
       },
     },
