@@ -130,6 +130,18 @@ function createWorld(host, callbacks) {
     red: new THREE.MeshBasicMaterial({ color: 0xff626c }),
     dark: new THREE.MeshStandardMaterial({ color: 0x172039, roughness: 0.85 }),
   };
+  // Fog must fade into the painted sky, not leave opaque silhouettes of
+  // future junctions that would visibly jump when a pending track extends.
+  const fadeIntoSky = (material) => {
+    material.transparent = true;
+    material.onBeforeCompile = (shader) => {
+      shader.fragmentShader = shader.fragmentShader.replace(
+        "#include <fog_fragment>",
+        "#include <fog_fragment>\n#ifdef USE_FOG\ngl_FragColor.a *= 1.0 - fogFactor;\n#endif",
+      );
+    };
+  };
+  Object.values(materials).forEach(fadeIntoSky);
   let dirty = true;
   let dead = false,
     texturesReady = false,
@@ -177,6 +189,7 @@ function createWorld(host, callbacks) {
     alphaTest: 0.08,
     depthWrite: false,
   });
+  fadeIntoSky(personMaterial);
   const skylineTexture = new THREE.TextureLoader().load(
     "/assets/railway-skyline.png",
     () => {
@@ -454,6 +467,7 @@ function createWorld(host, callbacks) {
     alphaTest: 0.02,
     side: THREE.DoubleSide,
   });
+  fadeIntoSky(stationMaterial);
   const facade = new THREE.Mesh(
     remember(new THREE.PlaneGeometry(27, 13.5)),
     stationMaterial,
@@ -603,6 +617,23 @@ function createWorld(host, callbacks) {
     }
     const motion = journey.step(dt);
     if (motion.extension) extendTrack(motion.extension);
+    // Keep an undecided fork beyond the fog. Only delayed replies need extra
+    // straight track; reveal the new distance gradually after an extension/lock.
+    const pendingNext =
+      !motion.station &&
+      motion.physicalIndex < SCENARIOS.length - 1 &&
+      !journey.routes[motion.physicalIndex + 1];
+    const visibleDistance = pendingNext
+      ? Math.min(
+          115,
+          motion.position.z -
+            (journey.origins[motion.physicalIndex + 1].z + START_Z) -
+            2,
+        )
+      : 115;
+    scene.fog.far = Math.min(visibleDistance, scene.fog.far + dt * 50);
+    scene.fog.near = Math.min(40, scene.fog.far * 0.4);
+    host.dataset.visibility = scene.fog.far.toFixed(1);
     host.dataset.speed = motion.speed.toFixed(3);
     host.dataset.distance = motion.totalDistance.toFixed(3);
     host.dataset.physicalJunction = String(motion.physicalIndex + 1);

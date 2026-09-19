@@ -82,8 +82,9 @@ test("no train movement before the first points lock, and lock cannot change a p
   assert.equal(train.routes[0], route);
 });
 
-test("last junction is short and joins station; earlier junctions leave response time on a long straight", () => {
-  assert.ok(TILE_LENGTH - JUNCTION_LENGTH >= CRUISE_SPEED * 15);
+test("junctions add only a short response allowance and join the station", () => {
+  assert.ok(TILE_LENGTH > JUNCTION_LENGTH);
+  assert.ok(TILE_LENGTH - JUNCTION_LENGTH <= CRUISE_SPEED * 3);
   const route = makeRoute(
     "switch",
     { x: 0, z: -2 * TILE_LENGTH },
@@ -116,4 +117,33 @@ test("a game session requests each question once and only explicit retry may res
   assert.equal(calls, 4);
   await assert.rejects(session.request({ id: "fail" }, "live", 1));
   assert.equal(calls, 5);
+});
+
+test("normal replies after impact complete a short run without waiting-track extensions", () => {
+  const train = new RailwayJourney(3);
+  train.lock(0, "switch");
+  train.start();
+  let seconds = 0;
+  while (!train.arrived && seconds < 60) {
+    const index = train.physicalIndex;
+    const route = train.routes[index];
+    // Impact + consequence + next question + 0.8s reply + point movement.
+    if (
+      !train.station &&
+      index < 2 &&
+      train.distance >=
+        route.impactDistance + CRUISE_SPEED * (0.55 + 1.7 + 0.8 + 1.3)
+    ) {
+      train.lock(index + 1, index === 0 ? "stay" : "switch");
+    }
+    const frame = train.step(0.02);
+    assert.equal(
+      frame.extension,
+      null,
+      "a fast reply must not lengthen the journey",
+    );
+    seconds += 0.02;
+  }
+  assert.equal(train.arrived, true);
+  assert.ok(seconds < 46, `journey took ${seconds.toFixed(1)}s`);
 });

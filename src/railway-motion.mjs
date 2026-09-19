@@ -1,7 +1,7 @@
 // All coordinates are metres. The camera and both rail meshes share this path.
 export const START_Z = 8;
 export const JUNCTION_LENGTH = 96;
-export const TILE_LENGTH = 256;
+export const TILE_LENGTH = 120;
 export const END_Z = START_Z - TILE_LENGTH;
 export const PEOPLE_Z = -42;
 export const GAUGE = 1.6;

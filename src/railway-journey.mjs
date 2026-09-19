@@ -9,9 +9,9 @@ import {
 
 export const CRUISE_SPEED = 10;
 const ACCELERATION_TIME = 1.2;
-const EXTENSION_LENGTH = 160;
-// Move future junctions only while they remain outside the visible fog range.
-const WAITING_MARGIN = 140;
+const EXTENSION_LENGTH = 40;
+// A fast reply and point movement fit in the short normal straight.
+const WAITING_MARGIN = 20;
 
 export class RailwayJourney {
   constructor(rounds) {
