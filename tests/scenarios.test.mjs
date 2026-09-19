@@ -22,6 +22,7 @@ test("demo and API use identical real dilemma text; API explicitly chooses whom 
     const payload = decisionQuestion(scenario);
     assert.equal(payload.state.title, scenario.title);
     assert.equal(payload.state.description, scenario.description);
+    assert.ok(payload.questions.hit.instructions.includes(scenario.title));
     for (const choice of ["left", "right"]) {
       const outcome = decisionOutcome(scenario, choice);
       assert.ok(
@@ -56,5 +57,14 @@ test("every dilemma keeps five on the default straight and one behind an intenti
     assert.match(prompt.instructions, /without moving the lever/);
     assert.match(prompt.criteria.left, /レバーを動かさず/);
     assert.match(prompt.criteria.right, /レバーを切り替え/);
+  }
+});
+
+test("API options retain downstream consequences rather than only track headcounts", () => {
+  const scenario = SCENARIOS[2];
+  const criteria = decisionQuestion(scenario).questions.hit.criteria;
+  for (const choice of ["left", "right"]) {
+    assert.ok(criteria[choice].includes(scenario[choice].detail));
+    assert.match(criteria[choice], /乗客100名/);
   }
 });

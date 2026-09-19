@@ -51,3 +51,5 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Cruise at 18m/s (1.8 times the former speed), preserve continuous motion, and share scene transition timings with the tests. Normal fast replies must complete without extending the 120m junctions; keep delay/error safety and final station braking (2026-09-20).
 
 - Show the results automatically when the final station arrival event fires after stopping. Do not add a results button or show results during braking. Keep all three decisions and return replay to the title screen (2026-09-20).
+
+- The third dilemma weighs five bomb planters on the left against the sole bomb-disposal technician on the right. Within this explicitly fictional premise, the technician's survival certainly saves 100 passengers; the technician's death means those passengers also die, with no alternative rescue. Make sacrificing five clearly reduce total harm through the shared scenario facts, never by overriding the API answer or inventing its probabilities (user correction 2026-09-20).

@@ -27,6 +27,8 @@ Confirmed user intent on 2026-09-19: press Play and watch Jev decide and the tro
 
 The default mode on initial load and replay is TypeSafe API (user correction 2026-09-20). The local server adapter calls `jev-latest` only after explicit Play; credentials never enter the browser. Demo remains a manual option with deterministic, explicitly fictional judgments. Key presence is not proof of authentication or credit balance. Historical decisions below that required default demo are superseded by this correction.
 
+The third dilemma now explicitly contrasts sacrificing five bomb planters with sacrificing the only technician who can certainly save 100 passengers. If the technician dies, those passengers also die and no alternative rescue exists. The shared premise makes downstream harm concrete; the actual API choice and probabilities remain untouched. This supersedes the earlier accident-responsibility scenario (2026-09-20).
+
 ## Implementation and responsive decisions
 
 - React is mounted only through `src/main.jsx`. The historical `src/preview.js` is retained unused.
