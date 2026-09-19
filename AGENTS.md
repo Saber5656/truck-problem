@@ -26,11 +26,11 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 - The selected visual direction is the second neon broadcast-studio concept from the 2026-09-19 ideation pass.
 - The primary character is a fox-like conductor and live-show host named Jev.
-- The first playable slice is a three-question, two-choice trolley-problem game with crowd and Jev probability comparisons.
+- The first playable slice is a three-question, two-route trolley-problem game. Pressing Play lets Jev choose and moves the trolley; the player watches. Do not restore player-choice inputs or an agreement score (confirmed 2026-09-19).
 - The entry is `src/main.jsx`, which mounts `src/App.jsx` and imports the stylesheet. Do not switch to a static substitute when dependency installation fails. The old `src/preview.js` is unused historical code.
 - TypeSafe credentials belong only in the Git-ignored `.env.local` as `TYPESAFE_API_KEY` or in the process environment; never expose them as `VITE_` variables. The local API middleware is development-only, loopback port 5173.
 - Start in demo mode, clearly label fabricated poll/demo data, and do not silently fall back to demo after an API failure. Key presence is not proof of successful authentication or credit balance.
 
 - Canonical product checkout is `~/dev/jev-trolley-game`, separate from both Vaults. Keep the original source intact. Vault is for context and references only.
-- Narrow-width judgments must come into view after confirmation, with an adjacent next-round button. New questions and replay return focus to the heading and reset scroll.
+- Keep trolley playback visible on narrow screens. Announce arrival and provide an adjacent next-round button. New questions and replay return focus to the heading and reset scroll.
 - The fixed background illustration is labeled as scenery; scenario text defines the actual dilemma.

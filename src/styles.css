@@ -868,3 +868,83 @@ button:disabled, select:disabled { cursor: not-allowed; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition: none !important; scroll-behavior: auto !important; }
 }
+
+/* Playback keeps the accepted broadcast palette, with a real raster trolley. */
+.stage-visual--playback { min-height: 0; background-image: none; }
+.stage-visual--playback .stage-visual__topline { position: relative; inset: auto; padding: 18px 22px 0; }
+.stage-visual--playback .question-block { position: relative; inset: auto; margin: 16px 22px; padding: 16px 20px; }
+.stage-visual--playback .question-block h1 { font-size: clamp(1.6rem, 2.4vw, 2.3rem); line-height: 1.25; }
+.stage-visual--playback .question-block .eyebrow { margin-bottom: 10px; }
+.playback-controls { display: grid; grid-template-columns: 1fr auto; gap: 10px 16px; margin: 0 22px 16px; padding: 0; border: 0; background: none; }
+.playback-controls .action-strip__hint { line-height: 1.6; letter-spacing: 0; }
+.playback-mode-note { grid-column: 1 / -1; font-size: .7rem; color: var(--muted); }
+.railway-scene { container-type: inline-size; position: relative; isolation: isolate; aspect-ratio: 1.75; overflow: hidden; background: #070f2a; scroll-margin: 90px; }
+.railway-scene__background { display: block; width: 132%; max-width: none; height: auto; position: absolute; top: -13%; left: 0; }
+.trolley-sprite { position: absolute; left: 50.8%; top: calc(29.4cqw - 13%); width: 12%; height: auto; transform: translate(-50%, -100%); transform-origin: 50% 100%; filter: drop-shadow(0 8px 8px #030717aa); }
+.trolley-sprite--stay { animation: travel-stay 2.4s ease-in-out forwards; }
+.trolley-sprite--switch { animation: travel-switch 2.4s ease-in-out forwards; }
+@keyframes travel-stay {
+  0% { left: 50.8%; top: calc(29.4cqw - 13%); transform: translate(-50%, -100%) scale(1); }
+  45% { left: 50.8%; top: calc(35cqw - 13%); transform: translate(-50%, -100%) scale(1.25); }
+  100% { left: 39.5%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(-8deg); }
+}
+@keyframes travel-switch {
+  0% { left: 50.8%; top: calc(29.4cqw - 13%); transform: translate(-50%, -100%) scale(1); }
+  45% { left: 50.8%; top: calc(35cqw - 13%); transform: translate(-50%, -100%) scale(1.25); }
+  100% { left: 62.4%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(8deg); }
+}
+.railway-scene .route-sign { top: 39%; min-width: 0; max-width: 31%; width: auto; padding: 9px 12px; }
+.railway-scene .route-sign--left { left: 3%; }
+.railway-scene .route-sign--right { right: 3%; }
+.railway-scene .route-sign--chosen { border-color: var(--gold); box-shadow: 0 0 16px #ffd16677; }
+.stage-visual--playback .choice-dock { position: relative; inset: auto; margin: 16px 22px 0; }
+.stage-visual--playback .choice-button { cursor: default; min-height: 115px; transition: border-color .2s, box-shadow .2s; }
+.stage-visual--playback .choice-button:hover { transform: none; }
+.stage-visual--playback .stage-note { position: static; margin: 10px 22px 14px; padding: 0; background: none; line-height: 1.6; }
+.stage-visual--playback .api-error { margin: 0 22px 16px; }
+.decision-history { list-style: none; padding: 0; margin: 28px 0; text-align: left; display: grid; gap: 12px; }
+.decision-history li { display: grid; gap: 8px; padding: 16px; background: #081027; border: 1px solid var(--line); font-size: .78rem; color: #bccce5; line-height: 1.6; }
+.decision-history .mini-label { letter-spacing: .04em; }
+.decision-history__choice { font-size: 1.2rem; }
+.decision-history__choice--stay { color: var(--cyan); }
+.decision-history__choice--switch { color: var(--red-soft); }
+.connection-controls { grid-column: 1 / -1; }
+@media (max-width: 620px) {
+  .stage-visual--playback .stage-visual__topline { padding: 14px 12px 0; }
+  .stage-visual--playback .question-block { margin: 14px 12px; padding: 14px; }
+  .stage-visual--playback .question-block h1 { font-size: 1.5rem; }
+  .stage-visual--playback .question-block p:last-child { font-size: .8rem; }
+  .playback-controls { grid-template-columns: 1fr; margin: 0 12px 12px; gap: 8px; }
+  .playback-controls .action-strip__hint { font-size: .75rem; }
+  .playback-controls .primary-button { min-height: 48px; }
+  .playback-mode-note { font-size: .65rem; }
+  .railway-scene .route-sign { top: auto; bottom: 4%; max-width: 44%; padding: 6px 8px; font-size: .6rem; }
+  .railway-scene .route-sign strong { font-size: .66rem; }
+  .stage-visual--playback .choice-dock { margin: 12px 12px 0; grid-template-columns: 1fr 1fr; }
+  .stage-visual--playback .choice-button { padding: 12px 10px; min-height: 115px; }
+  .stage-visual--playback .choice-button__label { font-size: 1rem; }
+  .stage-visual--playback .choice-button__eyebrow { font-size: .55rem; letter-spacing: .02em; }
+  .stage-visual--playback .choice-button__detail { font-size: .7rem; }
+  .stage-visual--playback .stage-note { margin: 10px 12px 12px; font-size: .58rem; }
+  .stage-visual--playback .api-error { margin: 0 12px 12px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trolley-sprite--stay { animation: none; left: 39.5%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(-8deg); }
+  .trolley-sprite--switch { animation: none; left: 62.4%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(8deg); }
+}
+.playback-mode-control { display: flex; align-items: center; gap: 12px; margin: 0 22px 14px; }
+.playback-mode-control label { flex-shrink: 0; font-size: .75rem; color: var(--muted); }
+.playback-mode-control select { min-width: 0; padding: 8px 10px; color: #edf7ff; background: #101a2d; border: 1px solid #5b718c; border-radius: 6px; font: inherit; font-size: .78rem; }
+@media (max-width: 620px) {
+  .playback-mode-control { margin: 0 12px 12px; gap: 8px; }
+  .playback-mode-control select { flex: 1; font-size: .72rem; }
+  .playback-mode-control label { font-size: .68rem; }
+}
+@media (min-width: 901px) {
+  .stage-visual--playback .stage-visual__topline { padding-top: 12px; }
+  .stage-visual--playback .stage-chip { padding: 6px 10px; }
+  .stage-visual--playback .question-block { margin-top: 12px; margin-bottom: 12px; padding: 12px 18px; }
+  .stage-visual--playback .question-block p:last-child { max-width: 100%; margin-top: 8px; font-size: .88rem; line-height: 1.6; }
+  .playback-controls { min-height: 68px; margin-bottom: 12px; gap: 6px 14px; }
+  .railway-scene { aspect-ratio: 2.5; }
+}
