@@ -89,3 +89,86 @@ native幅の比較で文字・部品を判読でき、追加の拡大切り抜�
 - `public/assets/railway-stage-empty.png`: 元の背景からトロッコと人物だけを取り除き、線路・カメラ・ネオン・風景を保持する編集。
 - `public/assets/trolley-sprite.png`: 元の正面向きトロッコを、tealと真鍮・暖色前照灯・cyan/red反射を保った実透過PNGにする編集。
 - 完全なプロンプトと出力情報: ローカル `qa/railway-stage-generation.md`、`qa/trolley-sprite-generation.md`。Vaultの今回の作業記録にも保存。
+
+
+## 2026-09-19 — Jevの運転席視点（過去。走行方式は後節で更新）
+
+final result: pass
+
+ユーザーが「運転手視点なのに外観のトロッコが映っている」「Jevを運転手として、回答後に前方の人へ進む」と訂正。前節の車両スプライト構図は撤回し、first-personの景色＋人数＋固定コックピットへ変更。
+
+### 視覚比較
+
+- `design-reference.png` (1487×1058) と `qa/pov-01-ready.png` (1487×1024 / DPR1) を同じ比較入力で開いた。視点・衝突までの演出は新しいユーザー指示が優先。旧モックに忠実な外観車両や側面プラットフォームは復元しない。
+- Fonts/typography: 太い問いと進路、補足の階層を維持。長いタイトルの折り返し、数字を320pxでも確認。
+- Spacing/layout: 左にプレイ・運転席・2進路、右にJevのパネル。狭幅は上下配置。人物群が操作盤や人数札に隠れないことを初期画面で確認。
+- Colors/tokens: 選定済みnavy/cyan/redとgoldの結果表示を維持。白い人物は左右照明で背景から分離。
+- Image quality: 新背景1942×809、実透過コックピット1942×809、人物1024×1536。CSSは透明余白を切り取り、人体を図形で描いていない。景色の接近は拡大・水平移動で表現するため終点では背景が柔らかくなるが、短い演出の意図した差。運転席は固定、外観トロッコはDOMに0件。
+- Copy/content: Jevを運転手と明記。人数はシナリオと一致。結果は「1人／4人／研究者1人が巻き込まれました」。デモを架空と表示し、倫理的な正解や創作のJev理由は提示しない。
+
+初回POV比較に視覚のP0/P1/P2なし。全幅画像で文字と部品を読め、追加の拡大切り抜きは不要。狭幅は `qa/pov-05-mobile-ready.png` (390px)、`qa/pov-06-narrow.png` (320px) を実寸で確認。横あふれなし。
+
+### 振る舞いとレビュー
+
+- 新テストでimpact未実装・人数未設定を先に失敗させ、実装して通した。人数を挿入する一時処理の誤りもテストが検出し、全3問を修正。
+- ブラウザで第1問5/1→右へ接近→impact（暗転のopacity上昇、Play無効）→1人の結果、第2問4/1→左→4人の結果、第3問2/1→右→研究者1人の結果を確認。
+- `qa/pov-02-approach.png`、`qa/pov-03-impact.png`、`qa/pov-04-consequence.png`、`qa/pov-07-summary.png` を保存。再プレイで5/1・0/3・demo・ready・見出しfocus・scroll0。
+- 自己レビューでimpact中の進行メッセージに旧ready文言が残る問題を修正し、ブラウザで到達メッセージを再確認。reduced-motionの暗転抑止もCSS優先度を修正。OS設定での実画面検証は未実施。
+- Browser toolの短い状態待ちがdeadline exceededになる場面があり、その試行でimpactを確認したとは扱わない。第1問で実際のimpact状態・disabled・curtain opacityを取得できた証拠を採用。各試行後の新しい画面で最終状態を確認し、重複してPlayを押していない。
+- 20単体テスト・ビルド・4配信形式テスト成功。API中継や秘密ファイルの設定は変更なし。実API呼出・残高確認・実機確認は未実施。
+
+### 素材とプロンプト（built-in image_gen）
+
+- `public/assets/railway-driver-view.png`: 下中央から左右へ分岐する運転者視点。既存のネオン・山・街の方向性を保持し、車両・人物・操作盤は含めない。生成記録 `qa/driver-view-generation.md`。
+- `public/assets/railway-person.png`: 中立で無傷の白い単一ゲーム駒、左cyan/右redの照明、実透過。生成記録 `qa/railway-person-generation.md`。
+- `public/assets/jev-cockpit-overlay.png`: 前方80%以上が透明な操作盤とキツネの手元のみ。生成記録 `qa/cockpit-generation.md`。
+
+完全なプロンプト・透過確認・生成ツール情報は上記ローカル記録とVaultに保存。元画像は削除していない。
+
+今回のPOV差分の別実行レビューもClaude sonnet/lowで依頼したが、run `20260919T075059-457d53963ed9` は認証エラー。利用上限ではない。主担当が差分・影響範囲を自己レビューし、上記メッセージ/暗転抑止の修正を採用。秘密ファイル未読・配信境界維持を確認。
+
+## 2026-09-19 — 立体線路・可動分岐器・連続運行（最新）
+
+Final result: pass for local demo. Actual TypeSafe API remains unverified.
+
+### 要求と選定
+
+利用者の指示: 回答 → 可変レール切替 → 人への衝突 → 次の分岐と質問 → 繰り返し。画像の拡大・横移動を撤回し、Three.jsの線路と運転席カメラを共通の距離パスに置き換えた。前の「PlayだけでJevが判断する」は維持。「次の問いへ」ボタンは廃止。次の質問が表示されても、次のPlayまでは判断/APIを実行しない。
+
+### 視覚QA
+
+選定画像 `design-reference.png`（1487×1058）と `qa/rail-14-final-ready.png`（1487×1024）を同じ入力で目視比較。ユーザーの新しい運転席・線路要件を優先し、旧外観車両、壇上の人、観客は再現対象から外した。受け入れる差分: 運転席の大きい舞台、明示的なモード/Play、結果未取得時の空欄、判断理由を創作しないこと。
+
+- Typography: 太い日本語の問い、進路カード、細い補足の階層を保持。320pxで長い日本語が折り返す。
+- Spacing/layout: 左の問い/運転席、右のJevパネルを保持。狭幅は縦配置。390px・320pxとも横幅とscrollWidthが一致。全体スクロールでカードと判定も読める。
+- Colors: navy/cyan/redを維持。可動部はgold、選択された進路と確率は従来の色と文章で示す。
+- Image quality: skyline、人物、Jevの手元はimage_genの画像。線路・枕木・ポイントは走行のための3D形状。カメラも線路中心の経路を使う。画像拡大による走行はない。人物は前後で隠れない1列に修正。
+- Copy: 初期デモ、架空固定値/架空投票、正解率ではない説明を保持。衝突の結果は人数/条件を含む。外観トロッコは表示しない。
+
+### 問題・修正・検証
+
+| 問題 | 修正と根拠 |
+| --- | --- |
+| 旧方式では線路と移動方向がずれる | 線路/カメラが同じcenterline。距離で進め、加速・減速する。位置・向きの接続を両経路でテスト |
+| 分岐器が動かない | 固定のstock railに加え、heelを固定してtoeが動く金属ブレードと連動棒を実装。固定完了前は走行しない |
+| 次の問いが手動切替 | 衝突後に接続された次タイルを出し、走行終了時に問いを自動更新。次のAPIは自動実行しない |
+| カーブ中に背景の右端が見える | 平面背景を広い円筒内面に変更。`qa/rail-08-curve-fixed.png`で端・段差なしを再確認 |
+| 後列の人が前列に隠れる | 全員を横1列に。`qa/rail-14-final-ready.png`で5人を判別 |
+| 停止時もGPU描画、描画中断時も進行 | 停止時は変更がある時だけ描画。context lossは進行停止＋再読込案内。再プレイ時は描画資源を解放 |
+
+ブラウザ実操作: 第1問は分岐器switch固定→支線curve→impact時next=hidden→departing時next=visible→第2問ready。第2問はstay固定→直進→4人の結果→第3問ready。第3問は390pxで支線→研究者1人の結果→3判断の履歴へ自動遷移。再プレイはdemo/ready/0問/第1問/H1 focusへ戻り、再描画完了後Playが有効。
+
+証拠: `qa/rail-02-switching.png`, `rail-08-curve-fixed.png`, `rail-09-straight.png`, `rail-07-impact.png`, `rail-10-mobile.png`, `rail-11-mobile-moving.png`, `rail-12-summary.png`, `rail-13-320.png`, `rail-14-final-ready.png`。途中の旧平面背景・人物配置の画像も履歴として保持。初回の短いselector待ちが期限切れになった試行は証拠に数えず、区間ごとの状態待ちで上記一連を取り直した。
+
+### テスト・レビュー・秘密境界
+
+- 分岐固定と連続パスの新テストを先に実行し、未実装のexport/moduleで失敗することを確認後に実装。26テスト成功、配信形式4テスト成功、ビルド成功。
+- JSは757.18kB / gzip204.01kB。Viteの500kB警告は残るが、3D実装の配信サイズとして記録。描画比率を1.5に制限、枕木はインスタンス化。
+- 別実行のClaudeレビューは既記録の認証エラーのため未実施。認証を無断変更せず、主担当が自己レビュー。新しい状態遷移、タイミング、境界座標、再プレイ破棄、エラー、既存API/秘密境界、差分を点検。指摘は上記へ反映。
+- 実APIは一度も呼ばず、設定確認はローカル/api/statusのconfigured=trueのみ。秘密envは未読。Gitに追跡されたenvは空テンプレートだけ。
+- 架空sentinelをプロセス環境に渡して本番ビルドし、ブラウザ成果物にsentinel/環境ファイル/TypeSafe呼出先が含まれないことを確認。実キーの読取りや値比較はしていない。
+- 最新のブラウザ確認で新しいconsole error/warnは取得されず、ログには旧07:25のHMR失敗2件のみが残っていた。
+- reduced-motionは静止表示へ切り替える実装をレビュー。OS設定での実画面確認、WebGL非対応端末、物理スマホ、実API認証/残高は未検証。
+- 公開、push、デプロイなし。
+
+生成した3D用背景: `public/assets/railway-skyline.png` 1942×809。線路・車両・人物なし、下側は低詳細の濃紺霧。built-in image_gen、全プロンプトは `qa/skyline-generation.md` とVaultに保存。既存の素材を削除していない。

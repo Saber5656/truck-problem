@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test tests/game-logic.test.mjs tests/game-api.test.mjs tests/setup.test.mjs tests/decision.test.mjs",
+    "test": "node --test tests/game-logic.test.mjs tests/game-api.test.mjs tests/setup.test.mjs tests/decision.test.mjs tests/railway-motion.test.mjs",
     "dev": "vite",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",
@@ -12,9 +12,9 @@
   },
   "dependencies": {
     "@vitejs/plugin-react": "5.0.4",
-    "vite": "6.4.2",
     "react": "19.2.0",
-    "react-dom": "19.2.0"
-  },
-  "devDependencies": {}
+    "react-dom": "19.2.0",
+    "three": "^0.186.0",
+    "vite": "6.4.2"
+  }
 }

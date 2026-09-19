@@ -5,7 +5,9 @@ import {
   beginRound,
   receiveDecision,
   failRound,
+  finishSwitch,
   finishMotion,
+  finishImpact,
   advanceRound,
 } from "../src/game-logic.mjs";
 
@@ -21,22 +23,36 @@ test("Play starts Jev without requiring a player choice, then moves before recor
   assert.equal(initial.phase, "ready");
   const judging = beginRound(initial);
   assert.equal(judging.phase, "judging");
-  const moving = receiveDecision(judging, answer);
+  const switching = receiveDecision(judging, answer);
+  assert.equal(switching.phase, "switching");
+  assert.equal(finishMotion(switching), switching);
+  const moving = finishSwitch(switching);
   assert.equal(moving.phase, "moving");
   assert.equal(moving.answer.choice, "switch");
   assert.equal(moving.history.length, 0);
-  const arrived = finishMotion(moving);
-  assert.equal(arrived.phase, "arrived");
+  const impact = finishMotion(moving);
+  assert.equal(impact.phase, "impact");
+  assert.equal(impact.history.length, 0);
+  assert.equal(advanceRound(impact, 3), impact);
+  const arrived = finishImpact(impact);
+  assert.equal(arrived.phase, "departing");
   assert.deepEqual(arrived.history, [{ roundIndex: 0, answer }]);
 });
 
 test("double Play, duplicate responses and duplicate arrival never repeat a round", () => {
   const judging = beginRound(createRunState());
   assert.equal(beginRound(judging), judging);
-  const moving = receiveDecision(judging, answer);
+  const switching = receiveDecision(judging, answer);
+  assert.equal(switching.phase, "switching");
+  assert.equal(finishMotion(switching), switching);
+  const moving = finishSwitch(switching);
   assert.equal(receiveDecision(moving, answer), moving);
   assert.equal(beginRound(moving), moving);
-  const arrived = finishMotion(moving);
+  const impact = finishMotion(moving);
+  assert.equal(impact.phase, "impact");
+  assert.equal(impact.history.length, 0);
+  assert.equal(advanceRound(impact, 3), impact);
+  const arrived = finishImpact(impact);
   assert.equal(finishMotion(arrived), arrived);
   assert.equal(beginRound(arrived), arrived);
 });
@@ -50,7 +66,11 @@ test("next round is unavailable until the trolley arrives; advancing requires an
     assert.equal(advanceRound(state, 3), state);
   }
   const next = advanceRound(
-    finishMotion(receiveDecision(beginRound(createRunState()), answer)),
+    finishImpact(
+      finishMotion(
+        finishSwitch(receiveDecision(beginRound(createRunState()), answer)),
+      ),
+    ),
     3,
   );
   assert.equal(next.roundIndex, 1);
@@ -69,11 +89,15 @@ test("failure restores a retryable ready state without movement, fabricated answ
 test("three arrivals finish the run once; replay clears every decision", () => {
   let state = createRunState();
   for (let round = 0; round < 3; round++) {
-    state = finishMotion(
-      receiveDecision(beginRound(state), {
-        ...answer,
-        choice: round === 1 ? "stay" : "switch",
-      }),
+    state = finishImpact(
+      finishMotion(
+        finishSwitch(
+          receiveDecision(beginRound(state), {
+            ...answer,
+            choice: round === 1 ? "stay" : "switch",
+          }),
+        ),
+      ),
     );
     state = advanceRound(state, 3);
   }
@@ -86,4 +110,27 @@ test("three arrivals finish the run once; replay clears every decision", () => {
   assert.equal(beginRound(state), state);
   assert.equal(advanceRound(state, 3), state);
   assert.deepEqual(createRunState().history, []);
+});
+
+test("impact is a separate non-repeatable transition; no next or play during it", () => {
+  const moving = finishSwitch(
+    receiveDecision(beginRound(createRunState()), answer),
+  );
+  assert.equal(finishImpact(moving), moving);
+  const impact = finishMotion(moving);
+  assert.equal(beginRound(impact), impact);
+  assert.equal(finishMotion(impact), impact);
+  assert.equal(advanceRound(impact, 3), impact);
+  const arrived = finishImpact(impact);
+  assert.equal(finishImpact(arrived), arrived);
+});
+
+test("point lock is required before motion and may complete only once", () => {
+  const ready = createRunState();
+  assert.equal(finishSwitch(ready), ready);
+  const switching = receiveDecision(beginRound(ready), answer);
+  assert.equal(beginRound(switching), switching);
+  assert.equal(advanceRound(switching, 3), switching);
+  const moving = finishSwitch(switching);
+  assert.equal(finishSwitch(moving), moving);
 });

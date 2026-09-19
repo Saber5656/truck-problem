@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import RailwayScene from "./RailwayScene.jsx";
 import { SCENARIOS } from "./scenarios.mjs";
 import { requestDecision } from "./game-api.mjs";
 import {
@@ -6,7 +7,9 @@ import {
   beginRound,
   receiveDecision,
   failRound,
+  finishSwitch,
   finishMotion,
+  finishImpact,
   advanceRound,
 } from "./game-logic.mjs";
 
@@ -54,12 +57,23 @@ function App() {
   const [mode, setMode] = useState("demo");
   const [configured, setConfigured] = useState(null);
   const [error, setError] = useState("");
+  const [sceneReady, setSceneReady] = useState(false);
+  const [sceneError, setSceneError] = useState("");
   const pending = useRef(false);
   const questionRef = useRef(null);
   const sceneRef = useRef(null);
   const previousScreen = useRef(`${roundIndex}:${gameFinished}`);
   const scenario = SCENARIOS[roundIndex];
-  const busy = phase === "judging" || phase === "moving";
+  const busy = [
+    "judging",
+    "switching",
+    "moving",
+    "impact",
+    "departing",
+  ].includes(phase);
+  const consequence =
+    answer &&
+    `${(answer.choice === "stay" ? scenario.left : scenario.right).detail.replace("巻き込まれる", "巻き込まれました")}`;
   const jevChoiceLabel =
     answer &&
     (answer.choice === "stay" ? scenario.left.label : scenario.right.label);
@@ -68,21 +82,15 @@ function App() {
     const screen = `${roundIndex}:${gameFinished}`;
     if (previousScreen.current !== screen) {
       questionRef.current?.focus({ preventScroll: true });
-      window.scrollTo(0, 0);
+      if (gameFinished || roundIndex === 0) window.scrollTo(0, 0);
+      else
+        questionRef.current?.scrollIntoView({
+          block: "start",
+          behavior: "instant",
+        });
       previousScreen.current = screen;
     }
   }, [roundIndex, gameFinished]);
-
-  useEffect(() => {
-    if (phase !== "moving") return;
-    // A timer also completes the round in background tabs and reduced-motion mode.
-    const duration = window.matchMedia("(prefers-reduced-motion: reduce)")
-      .matches
-      ? 50
-      : 2600;
-    const timer = window.setTimeout(() => setRun(finishMotion), duration);
-    return () => window.clearTimeout(timer);
-  }, [phase]);
 
   useEffect(() => {
     let active = true;
@@ -100,7 +108,8 @@ function App() {
   }, []);
 
   const play = async () => {
-    if (phase !== "ready" || pending.current) return;
+    if (phase !== "ready" || pending.current || !sceneReady || sceneError)
+      return;
     pending.current = true;
     setRun(beginRound);
     setError("");
@@ -116,14 +125,21 @@ function App() {
     }
   };
 
-  const nextRound = () => {
-    if (phase !== "arrived") return;
-    setRun((current) => advanceRound(current, SCENARIOS.length));
-    setError("");
+  const sceneEvent = (event) => {
+    const transitions = {
+      switch: finishSwitch,
+      impact: finishMotion,
+      consequence: finishImpact,
+    };
+    if (event === "next")
+      setRun((current) => advanceRound(current, SCENARIOS.length));
+    else if (transitions[event]) setRun(transitions[event]);
   };
 
   const restart = () => {
     setRun(createRunState());
+    setSceneReady(false);
+    setSceneError("");
     setMode("demo");
     setShowHow(false);
     setError("");
@@ -160,6 +176,11 @@ function App() {
                     : SCENARIOS[index].right.label}
                 </strong>
                 <span>
+                  {(decision.choice === "stay"
+                    ? SCENARIOS[index].left
+                    : SCENARIOS[index].right
+                  ).detail.replace("巻き込まれる", "巻き込まれました")}
+                  <br />
                   選択確率 {decision.probabilities[decision.choice]}% · 確信度{" "}
                   {decision.confidence}%
                 </span>
@@ -184,13 +205,20 @@ function App() {
   }
 
   const status =
-    phase === "judging"
-      ? "Jevが進路を判断しています…"
-      : phase === "moving"
-        ? `${jevChoiceLabel} — トロッコが進んでいます`
-        : phase === "arrived"
-          ? `${jevChoiceLabel} — この問いの運行が終了しました`
-          : "プレイを押すと、Jevが進路を選びます";
+    sceneError ||
+    (!sceneReady
+      ? "運転席を準備しています…"
+      : phase === "judging"
+        ? "Jevが進路を判断しています…"
+        : phase === "switching"
+          ? `${jevChoiceLabel} — 分岐器を合わせています`
+          : phase === "moving"
+            ? `${jevChoiceLabel} — 線路に沿って走行中`
+            : phase === "impact"
+              ? consequence
+              : phase === "departing"
+                ? `${consequence}。${roundIndex < 2 ? "次の分岐へ進んでいます" : "運行を終えます"}`
+                : "プレイを押すと、Jevが進路を選びます");
 
   return (
     <main className="game-shell">
@@ -251,24 +279,27 @@ function App() {
             <div className="action-strip playback-controls">
               <div className="action-strip__hint" role="status">
                 <span
-                  className={`result-dot ${phase === "arrived" ? "result-dot--match" : ""}`}
+                  className={`result-dot ${phase === "departing" ? "result-dot--match" : ""}`}
                 />
                 {status}
               </div>
               <button
                 className="primary-button primary-button--compact"
                 type="button"
-                disabled={busy || (mode === "live" && !configured)}
-                onClick={phase === "arrived" ? nextRound : play}
+                disabled={
+                  busy ||
+                  !sceneReady ||
+                  !!sceneError ||
+                  (mode === "live" && !configured)
+                }
+                onClick={play}
               >
                 {phase === "judging"
                   ? "判定中…"
-                  : phase === "moving"
-                    ? "運行中…"
-                    : phase === "arrived"
-                      ? roundIndex === SCENARIOS.length - 1
-                        ? "3問の結果を見る"
-                        : "次の問いへ"
+                  : phase === "switching"
+                    ? "進路を設定中…"
+                    : busy
+                      ? "運行中…"
                       : error
                         ? "もう一度判定する"
                         : "ゲームをプレイ"}
@@ -285,42 +316,57 @@ function App() {
               </p>
             )}
             <div
-              className={`railway-scene railway-scene--${phase}`}
+              className={`railway-scene driver-scene driver-scene--${phase}`}
               ref={sceneRef}
               data-phase={phase}
               data-route={answer?.choice || "pending"}
-              role="img"
-              aria-label={
-                answer
-                  ? `トロッコの進路：${jevChoiceLabel}。${phase === "arrived" ? "運行終了" : "移動中"}`
-                  : "分岐する線路で待機するトロッコ"
-              }
+              role="group"
+              aria-label="Jevの運転席から見た線路"
             >
-              <img
-                className="railway-scene__background"
-                src="/assets/railway-stage-empty.png"
-                alt=""
+              <RailwayScene
+                run={run}
+                onEvent={sceneEvent}
+                onReady={() => setSceneReady(true)}
+                onError={(message) => {
+                  setSceneError(message);
+                  setSceneReady(false);
+                }}
               />
-              <img
-                key={roundIndex}
-                className={`trolley-sprite ${answer ? `trolley-sprite--${answer.choice}` : ""}`}
-                src="/assets/trolley-sprite.png"
-                alt=""
-              />
+              <span className="points-indicator" aria-live="polite">
+                {phase === "switching"
+                  ? "分岐器 · 切り替え中"
+                  : answer
+                    ? `進路固定 · ${answer.choice === "stay" ? "直進" : "支線"}`
+                    : "分岐器 · 待機"}
+              </span>
               <div
                 className={`route-sign route-sign--left ${answer?.choice === "stay" ? "route-sign--chosen" : ""}`}
-                aria-hidden="true"
               >
-                <span>直進すると</span>
-                <strong>{scenario.left.detail}</strong>
+                <span>現在の進路</span>
+                <strong>{scenario.left.people}人</strong>
               </div>
               <div
                 className={`route-sign route-sign--right ${answer?.choice === "switch" ? "route-sign--chosen" : ""}`}
-                aria-hidden="true"
               >
-                <span>切り替えると</span>
-                <strong>{scenario.right.detail}</strong>
+                <span>切り替え先</span>
+                <strong>{scenario.right.people}人</strong>
               </div>
+              <img
+                className="cockpit-overlay"
+                src="/assets/jev-cockpit-overlay.png"
+                alt="Jevの手と運転席の操作盤"
+              />
+              <span className="driver-view-label">JEV'S VIEW / 運転席</span>
+              <div className="impact-curtain" aria-hidden="true" />
+              {["impact", "departing"].includes(phase) && (
+                <div className="consequence-card">
+                  <span>
+                    この選択の結果 ·{" "}
+                    {roundIndex < 2 ? "次の分岐へ" : "運行終了へ"}
+                  </span>
+                  <strong>{consequence}</strong>
+                </div>
+              )}
             </div>
             <div className="choice-dock" aria-label="Jevが判断する2つの進路">
               <RouteCard
@@ -336,7 +382,8 @@ function App() {
               />
             </div>
             <p className="stage-note">
-              舞台はイメージです。人数・条件は問題文をご覧ください。
+              Jevの回答 → 分岐器 → 走行 → 衝突 →
+              次の分岐。衝突は暗転で表現します。
             </p>
           </div>
         </div>
@@ -351,7 +398,7 @@ function App() {
                     ? "API応答受信済み"
                     : "API / 未判定"}
               </span>
-              <h2>Jevの判断</h2>
+              <h2>運転手Jevの判断</h2>
             </div>
             <span className="signal-bars" aria-hidden="true">
               <i />
@@ -360,11 +407,11 @@ function App() {
             </span>
           </div>
           <div className="mascot-frame">
-            <img src="/assets/jev-fox-mascot.png" alt="Jev、キツネの車掌" />
+            <img src="/assets/jev-fox-mascot.png" alt="Jev、キツネの運転手" />
             <div className="mascot-frame__bubble">
-              ひとつの問い。
+              DRIVER
               <br />
-              ふたつの進路。
+              JEV
             </div>
           </div>
           <div className="intel-panel__copy">
@@ -433,17 +480,6 @@ function App() {
                     : "TypeSafeから受け取った選択・確率・確信度です。"}
                 </p>
                 <p>確率・確信度は倫理的な正解率ではありません。</p>
-                {phase === "arrived" && (
-                  <button
-                    className="primary-button judgement-next"
-                    type="button"
-                    onClick={nextRound}
-                  >
-                    {roundIndex === SCENARIOS.length - 1
-                      ? "3問の結果を見る"
-                      : "次の問いへ"}
-                  </button>
-                )}
               </>
             ) : (
               <p>

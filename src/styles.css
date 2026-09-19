@@ -879,20 +879,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
 .playback-controls .action-strip__hint { line-height: 1.6; letter-spacing: 0; }
 .playback-mode-note { grid-column: 1 / -1; font-size: .7rem; color: var(--muted); }
 .railway-scene { container-type: inline-size; position: relative; isolation: isolate; aspect-ratio: 1.75; overflow: hidden; background: #070f2a; scroll-margin: 90px; }
-.railway-scene__background { display: block; width: 132%; max-width: none; height: auto; position: absolute; top: -13%; left: 0; }
-.trolley-sprite { position: absolute; left: 50.8%; top: calc(29.4cqw - 13%); width: 12%; height: auto; transform: translate(-50%, -100%); transform-origin: 50% 100%; filter: drop-shadow(0 8px 8px #030717aa); }
-.trolley-sprite--stay { animation: travel-stay 2.4s ease-in-out forwards; }
-.trolley-sprite--switch { animation: travel-switch 2.4s ease-in-out forwards; }
-@keyframes travel-stay {
-  0% { left: 50.8%; top: calc(29.4cqw - 13%); transform: translate(-50%, -100%) scale(1); }
-  45% { left: 50.8%; top: calc(35cqw - 13%); transform: translate(-50%, -100%) scale(1.25); }
-  100% { left: 39.5%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(-8deg); }
-}
-@keyframes travel-switch {
-  0% { left: 50.8%; top: calc(29.4cqw - 13%); transform: translate(-50%, -100%) scale(1); }
-  45% { left: 50.8%; top: calc(35cqw - 13%); transform: translate(-50%, -100%) scale(1.25); }
-  100% { left: 62.4%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(8deg); }
-}
 .railway-scene .route-sign { top: 39%; min-width: 0; max-width: 31%; width: auto; padding: 9px 12px; }
 .railway-scene .route-sign--left { left: 3%; }
 .railway-scene .route-sign--right { right: 3%; }
@@ -928,10 +914,6 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .stage-visual--playback .stage-note { margin: 10px 12px 12px; font-size: .58rem; }
   .stage-visual--playback .api-error { margin: 0 12px 12px; }
 }
-@media (prefers-reduced-motion: reduce) {
-  .trolley-sprite--stay { animation: none; left: 39.5%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(-8deg); }
-  .trolley-sprite--switch { animation: none; left: 62.4%; top: calc(31.2cqw - 13%); transform: translate(-50%, -100%) scale(1.12) rotate(8deg); }
-}
 .playback-mode-control { display: flex; align-items: center; gap: 12px; margin: 0 22px 14px; }
 .playback-mode-control label { flex-shrink: 0; font-size: .75rem; color: var(--muted); }
 .playback-mode-control select { min-width: 0; padding: 8px 10px; color: #edf7ff; background: #101a2d; border: 1px solid #5b718c; border-radius: 6px; font: inherit; font-size: .78rem; }
@@ -947,4 +929,33 @@ button:disabled, select:disabled { cursor: not-allowed; }
   .stage-visual--playback .question-block p:last-child { max-width: 100%; margin-top: 8px; font-size: .88rem; line-height: 1.6; }
   .playback-controls { min-height: 68px; margin-bottom: 12px; gap: 6px 14px; }
   .railway-scene { aspect-ratio: 2.5; }
+}
+
+/* The cockpit is fixed; rail geometry and camera move in one 3D world. */
+.driver-scene { aspect-ratio: 2.1; background: #071027 url('/assets/railway-skyline.png') center / cover; }
+.railway-canvas { position: absolute; inset: 0; }
+.railway-canvas canvas { display: block; width: 100%; height: 100%; }
+.cockpit-overlay { position: absolute; width: 100%; height: auto; bottom: 0; left: 0; pointer-events: none; z-index: 3; }
+.driver-view-label { position: absolute; bottom: 6px; left: 50%; transform: translateX(-50%); z-index: 4; color: var(--cyan-soft); background: #050817dd; padding: 3px 8px; font-size: .58rem; letter-spacing: .13em; white-space: nowrap; }
+.driver-scene .route-sign { top: 7%; bottom: auto; z-index: 2; min-width: 100px; text-align: center; }
+.driver-scene .route-sign strong { font-size: 1.2rem; }
+.driver-scene--moving .route-sign, .driver-scene--impact .route-sign, .driver-scene--departing .route-sign { opacity: 0; }
+.points-indicator { position: absolute; top: 12px; left: 50%; transform: translateX(-50%); z-index: 2; color: #ffdc92; background: #091224dd; border: 1px solid #826b40; padding: 6px 10px; font-size: .65rem; white-space: nowrap; }
+.impact-curtain { position: absolute; inset: 0; z-index: 5; pointer-events: none; background: #020410; opacity: 0; transition: opacity .12s ease; }
+.driver-scene--impact .impact-curtain { opacity: 1; }
+.consequence-card { position: absolute; z-index: 6; top: 10%; left: 50%; transform: translateX(-50%); width: max-content; max-width: 86%; padding: 12px 22px; display: grid; gap: 5px; text-align: center; background: #050817e8; border: 1px solid var(--gold); }
+.consequence-card span { font-size: .66rem; color: var(--gold); }
+.consequence-card strong { font-size: clamp(.9rem, 1.4vw, 1.3rem); line-height: 1.5; }
+@media (max-width: 620px) {
+  .driver-scene { aspect-ratio: 1.2; }
+  .driver-scene .route-sign { top: 13%; bottom: auto; min-width: 0; width: 25%; padding: 5px; }
+  .driver-scene .route-sign strong { font-size: 1rem; }
+  .cockpit-overlay { width: 135%; max-width: none; left: -17.5%; }
+  .driver-view-label { font-size: .5rem; bottom: 3px; }
+  .points-indicator { top: 8px; font-size: .6rem; }
+  .consequence-card { top: 13%; padding: 10px 12px; }
+  .consequence-card span { font-size: .6rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .driver-scene .impact-curtain { transition: none; opacity: 0; }
 }

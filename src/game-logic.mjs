@@ -15,7 +15,7 @@ export function beginRound(state) {
 
 export function receiveDecision(state, answer) {
   if (state.phase !== "judging") return state;
-  return { ...state, phase: "moving", answer };
+  return { ...state, phase: "switching", answer };
 }
 
 export function failRound(state) {
@@ -23,11 +23,21 @@ export function failRound(state) {
   return { ...state, phase: "ready" };
 }
 
+export function finishSwitch(state) {
+  if (state.phase !== "switching") return state;
+  return { ...state, phase: "moving" };
+}
+
 export function finishMotion(state) {
   if (state.phase !== "moving") return state;
+  return { ...state, phase: "impact" };
+}
+
+export function finishImpact(state) {
+  if (state.phase !== "impact") return state;
   return {
     ...state,
-    phase: "arrived",
+    phase: "departing",
     history: [
       ...state.history,
       { roundIndex: state.roundIndex, answer: state.answer },
@@ -36,7 +46,7 @@ export function finishMotion(state) {
 }
 
 export function advanceRound(state, totalRounds) {
-  if (state.gameFinished || state.phase !== "arrived") return state;
+  if (state.gameFinished || state.phase !== "departing") return state;
   if (state.roundIndex === totalRounds - 1)
     return { ...state, gameFinished: true };
   return {
