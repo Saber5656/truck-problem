@@ -58,7 +58,7 @@ function App({ decisionProvider } = {}) {
   const { roundIndex, phase, answer, history, gameFinished } = run;
   const isStart = phase === "ready";
   const [showSettings, setShowSettings] = useState(false);
-  const [mode, setMode] = useState("demo");
+  const [mode, setMode] = useState("live");
   const [configured, setConfigured] = useState(null);
   const [error, setError] = useState("");
   const [sceneReady, setSceneReady] = useState(false);
@@ -161,7 +161,7 @@ function App({ decisionProvider } = {}) {
     setRun(createRunState());
     setSceneReady(false);
     setSceneError("");
-    setMode("demo");
+    setMode("live");
     setShowSettings(false);
     setError("");
   };

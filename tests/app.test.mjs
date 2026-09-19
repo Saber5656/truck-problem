@@ -20,7 +20,9 @@ test("initial screen invites Play without revealing any question or casualty gro
     const html = renderToStaticMarkup(createElement(App));
     assert.match(html, /トロッコ問題を遊ぶ/);
     assert.match(html, /ゲームをプレイ/);
-    assert.match(html, /デモ · 架空の判定/);
+    assert.match(html, /TypeSafe API/);
+    assert.match(html, /開始すると最大3回のAPI判定で残高を使用します。/);
+    assert.ok(!html.includes("デモ · 架空の判定"));
     for (const scenario of SCENARIOS) {
       for (const copy of [
         scenario.title,

@@ -17,15 +17,15 @@
 
 ## Interaction model
 
-1. Start in demo mode with a visible Play button and two possible routes.
+1. Start on the title screen with TypeSafe API selected and a visible Play button. Reveal the first question and routes only after Play.
 2. Press Play once: request Jev's decision (or the explicitly fictional demo value).
 3. Show the selected route, align the movable points, then follow the rail centerline behind the fixed cockpit. A brief dark impact transition precedes the consequence. Keep Play disabled throughout travel.
-4. After impact, reveal the connected next junction; automatically present its question when the train reaches it. Each of the three dilemmas requires an explicit Play action; no automatic API calls or retries.
+4. After impact, reveal the connected next junction and request its decision while moving. One explicit Play starts all three dilemmas; never retry automatically.
 5. Show the three Jev decisions, probabilities, and confidence, then allow replay. There is no human choice or agreement score.
 
 Confirmed user intent on 2026-09-19: press Play and watch Jev decide and the trolley move. This supersedes the earlier player-choice/comparison flow. Keep the accepted visual direction. Use separate forward scenery, people and fixed cockpit layers; retain original assets. Labels, controls and results are HTML. The stage remains a symbolic non-graphic illustration. Respect reduced motion by showing the final position without travel animation.
 
-The default mode uses deterministic demo judgments, explicitly labeled fictional. An opt-in TypeSafe mode uses the development server adapter to call `jev-latest`; credentials never enter the browser. Key presence is not proof of authentication or credit balance.
+The default mode on initial load and replay is TypeSafe API (user correction 2026-09-20). The local server adapter calls `jev-latest` only after explicit Play; credentials never enter the browser. Demo remains a manual option with deterministic, explicitly fictional judgments. Key presence is not proof of authentication or credit balance. Historical decisions below that required default demo are superseded by this correction.
 
 ## Implementation and responsive decisions
 

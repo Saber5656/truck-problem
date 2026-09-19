@@ -370,3 +370,10 @@ final result: passed
 - 本番4174のChromeでdemo Playを一度だけ押した後、追加操作なしで3件の結果一覧が表示された。見出しフォーカスと履歴内容を確認。再プレイでタイトルへ戻る。console warn/error取得範囲0件。証拠 `qa/auto-results-browser.txt/png`。
 - 本番ビルドを更新し、既存サーバーがその出力を配信。ブラウザタブは実APIモードを選んだ開始画面で保持。今回は到着処理の共通ロジックのみを変更したため実API再送は0回。前回の実API3問の検証結果は維持するが、今回の自動遷移の実操作はdemoで確認。
 - 秘密env内容は未読。Gitには空テンプレートだけ、配信物に架空sentinelなし。新しい未解決不具合なし。前回登録した依存警告9件は別件として残る。
+
+## Default TypeSafe mode — 2026-09-20
+
+- User changes the initial selection from demo to real API. Initial load, reload and replay now select TypeSafe API. Page load and mode selection do not request judgments; only explicit Play starts the three decisions. Manual demo selection, fictional labeling, key gate and no automatic retry/fallback remain intact.
+- TDD: actual App SSR initially failed the TypeSafe/usage-notice expectation, then passed. 43 tests, 4 Sites tests and production build passed. Existing chunk-size warning remains.
+- Chrome at http://127.0.0.1:4174/: initial TypeSafe badge and usage notice, manual demo selection, all three questions/automatic results, replay back to TypeSafe title, reload back to TypeSafe title verified. This change's verification made zero real TypeSafe calls; prior live API success is separate evidence.
+- This is a two-line mode-default change with corresponding tests/docs, not a visual redesign. Lead self-review checked both initialization paths, Play-only effect guard, demo option, credential exclusions and the full diff. No unresolved findings. Secret files remain unread and untracked; only .env.example is tracked. Evidence: qa/default-live-{red,tests,build,sites}.log and qa/default-live-replay.txt.
